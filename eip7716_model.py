@@ -44,7 +44,7 @@ class Network:
     # total APR incl EL tips/MEV ~3.2%  (=> EL bonus ~0.21 of CL)
     total_staked_eth: float = 40_700_000
     eth_price_usd: float = 1840.0
-    baseline_miss: float = 0.005          # steady-state fraction of stake missing per epoch
+    baseline_miss: float = 0.003          # steady-state fraction of stake missing per epoch (30d uptime 99.72%, Jul 2026)
     el_apr_bonus: float = 0.21            # EL rewards as fraction on top of CL rewards
 
     @property

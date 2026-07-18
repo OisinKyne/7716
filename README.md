@@ -32,7 +32,7 @@ Prior work this builds on: Vitalik's [anti-correlation incentives analysis](http
 
 ## Headline numbers
 
-Per 32 eth validator, July 2026 parameters (~40.7M eth staked, eth ≈ $1,840, ~0.5% baseline offline rate), cohort offline 24h:
+Per 32 eth validator, July 2026 parameters (~40.7M eth staked, eth ≈ $1,840, ~0.3% baseline offline rate — though the normalisation makes the results baseline-independent), cohort offline 24h:
 
 | Event | Today | Revised | Payback |
 | --- | --- | --- | --- |
