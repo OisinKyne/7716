@@ -1,4 +1,4 @@
-*(Draft comment for the [Supporting decentralized staking through more anti-correlation incentives](https://ethresear.ch/t/supporting-decentralized-staking-through-more-anti-correlation-incentives/19116) thread. Figures referenced as local files in `figures/` — swap for Discourse uploads when posting.)*
+*(Source of [this comment](https://ethresear.ch/t/supporting-decentralized-staking-through-more-anti-correlation-incentives/19116/18). Images use the Discourse `upload://` shortcodes from the published post, so pasting this file over the live post preserves them. Current vs live delta: identifier renames — `smoothed_offline_balance` / `OFFLINE_BALANCE_SMOOTHING_FACTOR` — matching consensus-specs review feedback.)*
 
 Reviving this thread two years on, with a model, a calibration, and a proposed restructuring of the mechanism it produced.
 
@@ -27,7 +27,7 @@ NET_EXCESS_PENALTIES = max(1, NET_EXCESS_PENALTIES + penalty_factor) - 1
 
 `NET_EXCESS_PENALTIES` chases the current miss rate, so the factor returns to 1 under any sustained participation level. For a 10% outage this takes about two minutes (Fig. 1). The mechanism prices the first few slots of an event and nothing after, and even hands out a small factor-0 discount window once the outage ends.
 
-![Fig 1 — penalty factor trajectories](figures/f1_factor_trajectory.png)
+![Fig 1 — penalty factor trajectories](upload://90rQoNfU27rV8ukuQRGwuIr2RlJ.png)
 
 The natural response is to raise the cap. It doesn't work. Each slot adds `penalty_factor − 1` to the counter, so across any step change in participation:
 
@@ -37,7 +37,7 @@ The natural response is to raise the cap. It doesn't work. Each slot adds `penal
 
 The total excess penalty is a fixed budget, independent of `MAX_PENALTY_FACTOR` and of outage duration. A larger cap just concentrates the same budget into fewer slots (Fig. 2).
 
-![Fig 2 — cap invariance](figures/f2_cap_invariance.png)
+![Fig 2 — cap invariance](upload://xZTT88H2DTj9uUb4aVbVyaQlMN2.png)
 
 Raising `PENALTY_ADJUSTMENT_FACTOR` does grow the budget, but the counter only decays at 1 per slot, so at constants large enough to matter (PAF ≈ 2^27 for percent-of-principal severity) the post-event recovery window stretches to roughly eight months, during which a second correlated event of any size lands at factor ~1. There are two further problems: at mainnet participation the counter's equilibrium sits below 1, so it bounces off zero and ordinary uncorrelated misses draw random factors between 0 and the cap (bad luck for solo stakers, who this EIP is meant to favour), and the original revenue-neutrality goal is itself what pins the total at a rounding error. These are properties of the update rule, not the constants, which is why I think the mechanism needs restructuring rather than retuning.
 
@@ -59,19 +59,20 @@ One new `Gwei` state field and effectively two constants (the slope is derived):
 offline           = balance in this slot's committees missing BOTH
                     timely source AND timely target
 committee_balance = total_active_balance // 32
-factor            = min(1 + PENALTY_SLOPE * max(0, offline − offline_balance_ema)
+factor            = min(1 + PENALTY_SLOPE * max(0, offline − smoothed_offline_balance)
                           // committee_balance,
                         MAX_PENALTY_FACTOR)   # cap 128, slope = 3·(cap−1) = 381
-offline_balance_ema += (offline − offline_balance_ema) >> MISS_EMA_SHIFT   # 17
+smoothed_offline_balance += (offline − smoothed_offline_balance)
+                          // OFFLINE_BALANCE_SMOOTHING_FACTOR   # 2**17, ~12.6d half-life
 ```
 
-The factor multiplies only the timely-target penalty, and only for validators missing both source and target. Source penalties stay at 1x and head votes remain penalty-free. `MISS_EMA_SHIFT = 17` gives the reference a half-life of ~12.6 days (the integer-shift EMA is the same pattern as 4844's excess blob gas, so nothing novel for client teams). At steady state the factor is exactly 1 for every slot.
+The factor multiplies only the timely-target penalty, and only for validators missing both source and target. Source penalties stay at 1x and head votes remain penalty-free. `OFFLINE_BALANCE_SMOOTHING_FACTOR = 2**17` makes `smoothed_offline_balance` an exponential moving average (EMA) of the per-slot offline balance with a half-life of ~12.6 days (the same integer smoothing pattern as 4844's excess blob gas, so nothing novel for client teams). At steady state the factor is exactly 1 for every slot.
 
 There are two normalisation details worth highlighting. The excess is divided by per-slot active balance, not by the EMA: an EMA-relative slope would make every onset factor (and the point where the cap binds) proportional to the baseline offline rate, so at the 99.7% participation we actually observe, a curve calibrated against a 99.5% assumption steepens by two thirds and saturates near 19% rather than a third. Dividing by active balance makes the curve invariant to participation drift, and setting `PENALTY_SLOPE = 3 × (MAX_PENALTY_FACTOR − 1)` makes the cap bind at exactly one third of stake as an identity, leaving the cap as the single severity knob. (One might worry that committee selection isn't stake-weighted post-7251, so realised per-slot committee balances wobble with the mix of 2048s and 32s — I checked, and it's ~1.2% relative std today and ~2% even under heavy consolidation, and the divisor is the deterministic per-slot average anyway, so the noise only enters the numerator where the EMA absorbs it.)
 
 Onset factors are then baseline-independent: ~5x at a 1% event, 20x at 5%, 39x at 10%, 77x at 20%, cap at one third — the factor discriminates by size across the whole band it is responsible for, and hands over to the leak exactly where the leak activates (Fig. 3).
 
-![Fig 3 — onset factor vs event size](figures/f3_onset_vs_size.png)
+![Fig 3 — onset factor vs event size](upload://mK8Jn7dfI06WHFZsKe5EoPrXsg4.png)
 
 The new scope restriction ("missing both source and target") is doing most of the security work. A missing block does not prevent anyone attesting: the committee votes the previous head and keeps full credit, so relay and builder failures don't register as attester faults at all. The one artifact they *can* cause (timely-source loss when 5+ consecutive slots are empty) is excluded, because scaling also requires a missed target, and target has the whole next epoch to be included. A validator that attested with a wrong target but a live, correct source (i.e a late boundary block, a split view, a correct minority client while a supermajority client forks off) was demonstrably online, so should pay only today's unscaled penalty. Getting scaled requires producing no timely attestation at all, **which a third party can't induce in a healthy validator without sustained censorship of its aggregates across a full epoch of inclusion opportunities**. In my eyes this closes the proposer view-splitting attack the original EIP left as TBD, and it answers the concern ([raised by jshufro in Toni's thread](https://ethresear.ch/t/analysis-on-correlated-attestation-penalties/19244/13)) that correlation penalties would punish operators for correctly staying on a canonical minority client.
 
@@ -93,15 +94,15 @@ Per 32 eth validator. The cohort is offline for 24 hours unless stated; "payback
 
 Fig. 4 compares mechanisms as a function of individual rectification time (the drafted mechanism literally overlaps the status quo line). Note the shape: exposure is meaningful but flattens once the cohort recovers, so the 72 hour straggler pays about $12 more than the 24 hour rectifier. Fig. 5 shows the same property as marginal cost per hour. Fig. 6 shows the layering with the leak across event sizes. (The clean gap-down at hour 24 in these charts is a modelling simplification; real events mostly do recover near-in-unison — a patch ships, operators restart — but if you model an exponentially staggered recovery instead, the aggregate anomaly persists a little longer and a 48h straggler pays ~10-25% more than the cliff model suggests, i.e. the cliff is the *optimistic* case for stragglers. Fig. 1 shows both. Nothing qualitative changes.)
 
-![Fig 4 — cost vs rectification time](figures/f4_cost_vs_rectification.png)
+![Fig 4 — cost vs rectification time](upload://w02CVGRWZlnxxfgiLqLw4BUpu45.png)
 
-![Fig 5 — marginal cost per hour](figures/f5_marginal_hours.png)
+![Fig 5 — marginal cost per hour](upload://ll6l5RAwv3iIcvlfvu0j6VPFxfL.png)
 
-![Fig 6 — layering with the inactivity leak](figures/f6_leak_layering.png)
+![Fig 6 — layering with the inactivity leak](upload://7aNIQ142FLSN90jmI9VZhl1Jcvw.png)
 
 Here are some key bounds worth considering as we review this proposal. The worst-case penalty flow is ~0.38% of a 32 eth principal per day, and only while roughly a third of stake is newly offline and the validator itself is fully offline (for calibration: the leak takes ~50% in 18 days, slashing can take everything). A useful conversion at current rates is that X months of rewards ≈ X × 0.26% of principal, so even the harshest scenario in the table is nowhere near stake-level punishment. An uncorrelated validator coincidentally down for six hours during a 40% crisis pays ~$55, about eleven days of rewards — bounded, but a real cost of any statistical mechanism, since the protocol can't observe cluster membership. Flapping outages cost *less* than the same downtime taken as isolated events, because the elevated EMA acts as a refractory period. And after a major crisis the reference decays on its fixed half-life (Fig. 7), where a counter-based design with an equivalent budget would report factor ~1 for the better part of a year.
 
-![Fig 7 — re-arming after a crisis](figures/f7_rearm.png)
+![Fig 7 — re-arming after a crisis](upload://sQrC2wVujLk9IMvegZKKaAJPd2a.png)
 
 My original gut-feel calibration was that a double-digit% liveness failure should cost "a month or more" to earn back. This proposal lands a 20%/24h event at ~3.7 weeks and a 10%/24h at ~2 weeks, which is about in range, without slamming into the cap at small event sizes (an earlier calibration I tried saturated at 5%, making a 10% event and a 30% event cost the same, which seems wrong). Also from [that 2024 comment](https://ethresear.ch/t/supporting-decentralized-staking-through-more-anti-correlation-incentives/19116/6): the suggestion that those offline during an outage should be hit harder than those who stay online through it — that's what this shape does, and the factor never drops below 1, so there are no discount windows subsidising missers during recovery.
 
@@ -119,4 +120,4 @@ My original gut-feel calibration was that a double-digit% liveness failure shoul
 
 3) Historical replay: I'd like to run the revised factor over past incidents (the May 2023 non-finality events in particular). The offline-signature scope needs per-flag participation history which public datasets don't consistently carry — pointers to a good source very welcome.
 
-To conclude: the case for anti-correlation penalties was made two years ago and hasn't been rebutted; what was missing is a mechanism that charges an amount anyone would notice, without punishing the slow-recovery long tail or misfiring on relay outages and chain splits. I think the offline-pattern + EMA-reference design above addresses both concerns, and the constants are now a policy choice the community can argue about with the model in hand. The revised EIP text is up as a PR, the simulation and figure code will be published shortly, as well as a PR to the consensus specs. Feedback is sought and appreciated on all of it, particularly from operators whose incident-response costs this is explicitly trying to shape. Thanks for reading.
+To conclude: the case for anti-correlation penalties was made two years ago and hasn't been rebutted; what was missing is a mechanism that charges an amount anyone would notice, without punishing the slow-recovery long tail or misfiring on relay outages and chain splits. I think the offline-pattern + EMA-reference design above addresses both concerns, and the constants are now a policy choice the community can argue about with the model in hand. The revised EIP text is up as a [PR](https://github.com/ethereum/EIPs/pull/11962), the simulation and figure code I have published [here](https://github.com/OisinKyne/7716), as well as a [PR](https://github.com/ethereum/consensus-specs/pull/5452) to the consensus-specs. Feedback is sought and appreciated on all of it, particularly from operators whose incident-response costs this is explicitly trying to shape, and core devs considering it for inclusion in Hegotá. Thanks for reading.

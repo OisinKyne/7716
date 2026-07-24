@@ -8,10 +8,11 @@ Supporting materials for the 2026 revival of [EIP-7716](https://eips.ethereum.or
 offline           = balance in a slot's committees missing BOTH
                     timely source AND timely target      # the "offline indicator"
 committee_balance = total_active_balance // 32
-factor            = min(1 + PENALTY_SLOPE * max(0, offline − offline_balance_ema)
+factor            = min(1 + PENALTY_SLOPE * max(0, offline − smoothed_offline_balance)
                           // committee_balance,
                         MAX_PENALTY_FACTOR)    # cap 128, slope = 3·(cap−1) = 381
-offline_balance_ema += (offline − offline_balance_ema) // 2**17   # ~12.6d half-life
+smoothed_offline_balance += (offline − smoothed_offline_balance)
+                          // OFFLINE_BALANCE_SMOOTHING_FACTOR    # 2**17, ~12.6d half-life
 ```
 
 The factor scales only the timely-**target** penalty of validators that produced no timely attestation at all. Uncorrelated failures pay exactly today's penalties; the factor is never below 1; the cap binds at exactly one third of stake — where the inactivity leak takes over — by the slope identity, at any baseline participation rate.
@@ -52,7 +53,7 @@ Under the *originally drafted* mechanism every one of these events costs within 
 | File | What it is |
 | --- | --- |
 | `eip7716_model.py` | Network anchors (stake, rewards, penalties) and an exact-integer simulation of the originally drafted `NET_EXCESS_PENALTIES` mechanism |
-| `gen_figures.py` | The **final** revised mechanism (slope 381 / cap 128 / 2¹⁷ EMA) plus the inactivity-leak model, and generation of all seven figures in `figures/` |
+| `gen_figures.py` | The **final** revised mechanism (slope 381 / cap 128 / 2¹⁷ smoothing) plus the inactivity-leak model, and generation of all seven figures in `figures/` |
 | `ethresearch-comment.md` | Source of the analysis write-up (image paths are local; swap for Discourse uploads) |
 | `figures/` | The seven figures referenced by the write-up |
 | `eip7716_variants.py` | *Design evolution:* cap/PAF sweeps proving the fixed-budget invariant, and an early slow-EMA-ratio design |
