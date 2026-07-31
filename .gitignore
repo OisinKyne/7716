@@ -1,3 +1,8 @@
 .venv/
 __pycache__/
 *.pyc
+# raw Xatu Parquet + the ingest's derived tables: ~5 GB, rebuilt by run_all.sh
+data/
+# per-validator intermediates: tens of MB, rebuilt from data/ in seconds.
+# results/*.{md,json,csv} and figures/ are the deliverables and are tracked.
+results/*.parquet

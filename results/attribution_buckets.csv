@@ -1,0 +1,6 @@
+bucket,validator_epochs,validators,eth_epochs,pct_of_offline_stake
+silent,5102216,283830,174744404.0,76.83
+desynced,988848,199294,34491660.0,15.17
+uncollected,307233,170255,10701783.0,4.71
+wrong-target,134348,93468,4686680.0,2.06
+chronic,87907,2190,2810415.0,1.24

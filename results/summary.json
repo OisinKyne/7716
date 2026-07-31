@@ -1,0 +1,227 @@
+{
+  "event_epochs": [
+    411439,
+    411480
+  ],
+  "seed_window": [
+    411200,
+    411391
+  ],
+  "seed_ema_gwei": 3518727050781,
+  "seed_ema_eth": 3518.727050781,
+  "seed_offline_share": 0.0031610141402507288,
+  "seed_nep": 1,
+  "total_active_balance_eth": 35632266.5,
+  "base_reward_per_increment_gwei": 339,
+  "cl_apr": 0.02785944375,
+  "peak_offline_share": 0.2980271712813593,
+  "mean_offline_share_event": 0.15197376024068346,
+  "factor_revised": {
+    "max": 112,
+    "mean": 56.729166666666664,
+    "slots_at_cap": 0
+  },
+  "factor_original": {
+    "max": 3,
+    "mean": 1.0,
+    "slots_at_cap": 0,
+    "slots_at_zero": 24
+  },
+  "event": {
+    "status_quo": {
+      "mean_loss_gwei_per_32eth": 277239.1649531573,
+      "median_loss_gwei_per_32eth": 295600.4633807302,
+      "p95_loss_gwei_per_32eth": 592436.9474077243,
+      "mean_days_to_recoup": 0.1054645937634788,
+      "median_days_to_recoup": 0.112449418147729,
+      "p95_days_to_recoup": 0.22536903110131642,
+      "network_total_eth": 97.80165910709142,
+      "network_penalty_eth": 48.187778548125
+    },
+    "original": {
+      "mean_loss_gwei_per_32eth": 278834.006682292,
+      "median_loss_gwei_per_32eth": 295600.4633807302,
+      "p95_loss_gwei_per_32eth": 585656.9474077243,
+      "mean_days_to_recoup": 0.1060712877531561,
+      "median_days_to_recoup": 0.112449418147729,
+      "p95_days_to_recoup": 0.22278985024915507,
+      "network_total_eth": 98.37875618084144,
+      "network_penalty_eth": 48.764875621875
+    },
+    "revised": {
+      "mean_loss_gwei_per_32eth": 6303447.838011074,
+      "median_loss_gwei_per_32eth": 7637259.842551237,
+      "p95_loss_gwei_per_32eth": 10829897.947407724,
+      "mean_days_to_recoup": 2.397895570264903,
+      "median_days_to_recoup": 2.90529120190103,
+      "p95_days_to_recoup": 4.119803158822352,
+      "network_total_eth": 2236.58587565131,
+      "network_penalty_eth": 2186.9719950923436
+    },
+    "n_validators_affected": 328835,
+    "mean_offline_epochs": 20.133355634284673,
+    "forgone_reward_eth": 49.61388055896643,
+    "forgone_reward_ideal_eth": 65.05350103996875,
+    "mean_factor_revised": 68.91800970674349,
+    "mean_factor_original": 1.0116834668770822
+  },
+  "event_plus_tail": {
+    "status_quo": {
+      "mean_loss_gwei_per_32eth": 472378.9204466397,
+      "median_loss_gwei_per_32eth": 282831.19019489794,
+      "p95_loss_gwei_per_32eth": 2728246.7146212524,
+      "mean_days_to_recoup": 0.17969773843372042,
+      "median_days_to_recoup": 0.10759185695349362,
+      "p95_days_to_recoup": 1.0378527560948754,
+      "network_total_eth": 175.64797412813826,
+      "network_penalty_eth": 82.038128608125
+    },
+    "original": {
+      "mean_loss_gwei_per_32eth": 475892.1677315305,
+      "median_loss_gwei_per_32eth": 290071.8238073085,
+      "p95_loss_gwei_per_32eth": 2735697.7001761063,
+      "mean_days_to_recoup": 0.18103421337857264,
+      "median_days_to_recoup": 0.11034626750963598,
+      "p95_days_to_recoup": 1.0406871866660863,
+      "network_total_eth": 177.00120598126324,
+      "network_penalty_eth": 83.39136046125
+    },
+    "revised": {
+      "mean_loss_gwei_per_32eth": 6526536.794030015,
+      "median_loss_gwei_per_32eth": 7417851.390718415,
+      "p95_loss_gwei_per_32eth": 15209791.506097974,
+      "mean_days_to_recoup": 2.4827608746443603,
+      "median_days_to_recoup": 2.8218259986901777,
+      "p95_days_to_recoup": 5.785959147182049,
+      "network_total_eth": 2465.508360872264,
+      "network_penalty_eth": 2371.89851535225
+    },
+    "n_validators_affected": 351275,
+    "mean_offline_epochs": 32.498486940431285,
+    "forgone_reward_eth": 93.60984552001328,
+    "forgone_reward_ideal_eth": 110.75147362096875,
+    "mean_factor_revised": 43.27148935879465,
+    "mean_factor_original": 1.0159446827960916
+  },
+  "network_accounting": {
+    "epochs": [
+      411439,
+      411480
+    ],
+    "baseline_participation": {
+      "src": 0.996730446515218,
+      "tgt": 0.9958627272259538,
+      "head": 0.976940808795215
+    },
+    "attestation_rewards_paid_eth": 280.30001875492803,
+    "attestation_rewards_at_baseline_eth": 420.5719635950067,
+    "forgone_attestation_rewards_eth": 140.27194484007867,
+    "attestation_penalties_paid_eth": 48.947422397062496,
+    "attestation_penalties_at_baseline_eth": 1.2155471470244226,
+    "excess_attestation_penalties_eth": 47.73187525003807,
+    "cl_issuance_budget_eth": 507.32735187900005,
+    "slots": 1344,
+    "blocks_produced": 1096,
+    "missed_slots": 248,
+    "missed_slot_rate": 0.18452380952380953,
+    "baseline_missed_slot_rate": 0.00960286458333337,
+    "excess_missed_slots": 235.09374999999994,
+    "forgone_proposer_cl_eth": 11.092772473103018,
+    "forgone_proposer_el_eth": 7.217378124999999,
+    "forgone_sync_eth": 2.4093889168125,
+    "total_network_cost_eth": 208.72335960503227
+  },
+  "attributed": {
+    "chronic": {
+      "validators": 2190,
+      "share_of_offline_validators": 0.006659875013304545,
+      "share_of_offline_stake": 0.006134494510928414,
+      "mean_offline_epochs": 40.140182648401826,
+      "mean_bucket_purity": 1.0,
+      "mean_factor_revised": 56.78848100833836,
+      "days_to_recoup_status_quo": 0.21535180258233294,
+      "median_days_to_recoup_status_quo": 0.22536903110131642,
+      "days_to_recoup_original": 0.21537064591275973,
+      "median_days_to_recoup_original": 0.22536903110131642,
+      "days_to_recoup_revised": 3.9695658778906457,
+      "median_days_to_recoup_revised": 4.1432737045770205
+    },
+    "desynced": {
+      "validators": 10635,
+      "share_of_offline_validators": 0.03234144783858166,
+      "share_of_offline_stake": 0.043632498357550994,
+      "mean_offline_epochs": 21.82378937470616,
+      "mean_bucket_purity": 0.6091528820800644,
+      "mean_factor_revised": 60.2580311595202,
+      "days_to_recoup_status_quo": 0.11638684913471249,
+      "median_days_to_recoup_status_quo": 0.16101506070593125,
+      "days_to_recoup_original": 0.11664076566994644,
+      "median_days_to_recoup_original": 0.16105767971274876,
+      "days_to_recoup_revised": 2.2844530154669704,
+      "median_days_to_recoup_revised": 3.0360909890750616
+    },
+    "silent": {
+      "validators": 273453,
+      "share_of_offline_validators": 0.8315811881338665,
+      "share_of_offline_stake": 0.82130487495675,
+      "mean_offline_epochs": 22.759567457661827,
+      "mean_bucket_purity": 0.835364864444847,
+      "mean_factor_revised": 69.45613746996949,
+      "days_to_recoup_status_quo": 0.11908652992524842,
+      "median_days_to_recoup_status_quo": 0.12894984410229918,
+      "days_to_recoup_original": 0.11974815871855993,
+      "median_days_to_recoup_original": 0.12894417482646,
+      "days_to_recoup_revised": 2.7310767577060755,
+      "median_days_to_recoup_revised": 3.11497875781162
+    },
+    "uncollected": {
+      "validators": 38698,
+      "share_of_offline_validators": 0.11768212021226451,
+      "share_of_offline_stake": 0.11723872803705981,
+      "mean_offline_epochs": 1.8770995917101658,
+      "mean_bucket_purity": 0.9640424808771868,
+      "mean_factor_revised": 65.19885737885463,
+      "days_to_recoup_status_quo": 0.009927251492809892,
+      "median_days_to_recoup_status_quo": 0.00530867706822977,
+      "days_to_recoup_original": 0.010289955048483623,
+      "median_days_to_recoup_original": 0.00542683364099156,
+      "days_to_recoup_revised": 0.21195441499525924,
+      "median_days_to_recoup_revised": 0.1444554840423348
+    },
+    "wrong-target": {
+      "validators": 3859,
+      "share_of_offline_validators": 0.011735368801982757,
+      "share_of_offline_stake": 0.011689404137710769,
+      "mean_offline_epochs": 1.0979528375226744,
+      "mean_bucket_purity": 0.9927973659996205,
+      "mean_factor_revised": 68.26787821571867,
+      "days_to_recoup_status_quo": 0.005784259158555777,
+      "median_days_to_recoup_status_quo": 0.00530867706822977,
+      "days_to_recoup_original": 0.006250770750887631,
+      "median_days_to_recoup_original": 0.00530867706822977,
+      "days_to_recoup_revised": 0.12960305247512627,
+      "median_days_to_recoup_revised": 0.12266140584157136
+    }
+  },
+  "hypothetical_dv_archetype": {
+    "_label": "HYPOTHETICAL CONSTRUCTION -- not an observation",
+    "mean_event_factor_revised": 56.729166666666664,
+    "cases": {
+      "survival_0.00": {
+        "epochs_offline": 42.0,
+        "days_to_recoup_status_quo": 0.2545651501083256,
+        "days_to_recoup_revised": 4.178547018466935
+      },
+      "survival_0.50": {
+        "epochs_offline": 21.0,
+        "days_to_recoup_status_quo": 0.1272825750541628,
+        "days_to_recoup_revised": 2.0892735092334673
+      },
+      "survival_1.00": {
+        "epochs_offline": 0.0,
+        "days_to_recoup_status_quo": 0.0,
+        "days_to_recoup_revised": 0.0
+      }
+    }
+  }
+}
