@@ -1,0 +1,52 @@
+{
+  "epochs_classified": [
+    254470,
+    254594
+  ],
+  "sentry_recall_pct": 99.995,
+  "buckets": [
+    {
+      "bucket": "silent",
+      "validator_epochs": 1048382,
+      "validators": 55030,
+      "eth_epochs": 33547363.0,
+      "pct_of_offline_stake": 73.97
+    },
+    {
+      "bucket": "chronic",
+      "validator_epochs": 216648,
+      "validators": 1844,
+      "eth_epochs": 6903236.0,
+      "pct_of_offline_stake": 15.22
+    },
+    {
+      "bucket": "uncollected",
+      "validator_epochs": 107476,
+      "validators": 80917,
+      "eth_epochs": 3439213.0,
+      "pct_of_offline_stake": 7.58
+    },
+    {
+      "bucket": "desynced",
+      "validator_epochs": 22936,
+      "validators": 21761,
+      "eth_epochs": 733944.0,
+      "pct_of_offline_stake": 1.62
+    },
+    {
+      "bucket": "wrong-target",
+      "validator_epochs": 22732,
+      "validators": 21537,
+      "eth_epochs": 727422.0,
+      "pct_of_offline_stake": 1.6
+    }
+  ],
+  "distinct_validators_ever": {
+    "offline_validators": 134502,
+    "ever_desynced": 21761,
+    "ever_silent": 55030,
+    "ever_uncollected": 80917,
+    "ever_wrong_target": 21537,
+    "chronic": 1844
+  }
+}

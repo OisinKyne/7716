@@ -1,5 +1,5 @@
 
-PRE-FUSAKA BASELINE  (epochs 411200-411391, 192 epochs)
+Fusaka activation BASELINE  (epochs 411200-411391, 192 epochs)
                                                   share of stake  share of validators
 attested fully (timely source AND target)                99.575%              99.537%
 timely source, missed target   [NOT scaled]               0.098%               0.102%
@@ -21,8 +21,7 @@ missed BOTH  ->  OFFLINE       [SCALED]                  15.197%              15
  min_target_participation  at_epoch  max_offline_share  peak_epoch  missed_slot_rate
                  0.747263    411448           0.237898      411441          0.184524
 
-cross-check: the postmortem reports a 74.7% participation floor,
-~22.7% of the set offline, and an 18.5% missed-slot rate.
+cross-check: the postmortem reports a 74.7% participation floor, ~22.7% of the set offline, and an 18.5% missed-slot rate.
 
 --- plateau detail (epochs where offline share > 20%) ---
  epochs  mean_offline_pct  mean_src_only_pct  mean_tgt_only_pct  pct_of_non_full_attesters_that_were_dark

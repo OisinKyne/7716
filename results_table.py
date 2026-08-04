@@ -8,6 +8,8 @@ Run after `xatu_ingest.py`, `attribution.py` and `eip7716_historical.py`.
 from __future__ import annotations
 
 import argparse
+
+import events
 import json
 import os
 
@@ -40,22 +42,27 @@ def fmt_days(d):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--results-dir", default="results")
-    ap.add_argument("--out", default="results/RESULTS.md")
+    events.add_event_arg(ap)
+    ap.add_argument("--results-dir", default=None)
+    ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    s = json.load(open(os.path.join(args.results_dir, "summary.json")))
+    ev = events.get(args.event)
+    results_dir = args.results_dir or ev.results_dir
+    out_path = args.out or os.path.join(results_dir, "RESULTS.md")
+
+    s = json.load(open(os.path.join(results_dir, "summary.json")))
     L = []
     w = L.append
 
     lo, hi = s["event_epochs"]
-    w("# Results — 2025-12-04 post-Fusaka correlated outage under EIP-7716\n")
-    w(f"Event epochs **{lo}–{hi}** (42 epochs, 2025-12-04 02:49:59Z → 07:18:47Z), mainnet.")
+    w(f"# Results — {ev.title} under EIP-7716\n")
+    w(f"Event epochs **{lo}–{hi}** ({hi - lo + 1} epochs, {ev.subtitle}), mainnet.")
     w(f"Total active balance {s['total_active_balance_eth'] / 1e6:.2f}M ETH; "
       f"`base_reward_per_increment` = {s['base_reward_per_increment_gwei']} gwei; "
       f"measured CL APR {s['cl_apr'] * 100:.2f}%.\n")
     w(f"Moving average seeded from epochs **{s['seed_window'][0]}–{s['seed_window'][1]}** "
-      f"(pre-Fusaka): mean per-slot offline balance {s['seed_ema_eth']:,.0f} ETH, "
+      f"({ev.seed_label}): mean per-slot offline balance {s['seed_ema_eth']:,.0f} ETH, "
       f"= {s['seed_offline_share'] * 100:.3f}% of stake. "
       f"`NET_EXCESS_PENALTIES` warmed on the same window to {s['seed_nep']}.\n")
 
@@ -64,9 +71,10 @@ def main():
     w("|---|---|---|")
     fr, fo = s["factor_revised"], s["factor_original"]
     w(f"| peak per-slot factor | **{fr['max']}x** | **{fo['max']}x** |")
-    w(f"| mean over the 1344 event slots | {fr['mean']:.1f}x | {fo['mean']:.3f}x |")
-    w(f"| slots pinned at the cap | {fr['slots_at_cap']} / 1344 | {fo['slots_at_cap']} / 1344 |")
-    w(f"| slots at factor 0 (discount) | 0 | {fo['slots_at_zero']} / 1344 |")
+    nslots = (hi - lo + 1) * 32
+    w(f"| mean over the {nslots} event slots | {fr['mean']:.1f}x | {fo['mean']:.3f}x |")
+    w(f"| slots pinned at the cap | {fr['slots_at_cap']} / {nslots} | {fo['slots_at_cap']} / {nslots} |")
+    w(f"| slots at factor 0 (discount) | 0 | {fo['slots_at_zero']} / {nslots} |")
     w(f"| mean factor *as experienced by an offline validator* | "
       f"{s['event']['mean_factor_revised']:.1f}x | "
       f"{s['event']['mean_factor_original']:.3f}x |")
@@ -98,7 +106,7 @@ def main():
           "consensus or execution clients, and the ethPandaOps entity/client tables are "
           "Clickhouse-only. What follows is what the p2p record *can* establish.\n")
 
-        att_path = os.path.join(args.results_dir, "attribution.json")
+        att_path = os.path.join(results_dir, "attribution.json")
         if os.path.exists(att_path):
             a = json.load(open(att_path))
             w("Weighted by **offline validator-epochs** — what the offline stake was doing "
@@ -185,7 +193,7 @@ def main():
     w("")
 
     text = "\n".join(L)
-    with open(args.out, "w") as fh:
+    with open(out_path, "w") as fh:
         fh.write(text + "\n")
     print(text)
 

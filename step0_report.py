@@ -21,6 +21,8 @@ present -- the network-side control that separates "produced nothing" from
 from __future__ import annotations
 
 import argparse
+
+import events
 import os
 
 import duckdb
@@ -32,13 +34,21 @@ def fmt_pct(x):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--derived-dir", default="data/derived")
+    events.add_event_arg(ap)
+    ap.add_argument("--derived-dir", default=None)
     ap.add_argument("--data-dir", default="data/xatu")
-    ap.add_argument("--event-lo", type=int, default=411439)
-    ap.add_argument("--event-hi", type=int, default=411480)
-    ap.add_argument("--baseline-lo", type=int, default=411200)
-    ap.add_argument("--baseline-hi", type=int, default=411391)
+    ap.add_argument("--event-lo", type=int, default=None)
+    ap.add_argument("--event-hi", type=int, default=None)
+    ap.add_argument("--baseline-lo", type=int, default=None)
+    ap.add_argument("--baseline-hi", type=int, default=None)
     args = ap.parse_args()
+
+    ev = events.get(args.event)
+    args.derived_dir = args.derived_dir or ev.derived_dir
+    args.event_lo = args.event_lo if args.event_lo is not None else ev.event_lo
+    args.event_hi = args.event_hi if args.event_hi is not None else ev.event_hi
+    args.baseline_lo = args.baseline_lo if args.baseline_lo is not None else ev.seed_lo
+    args.baseline_hi = args.baseline_hi if args.baseline_hi is not None else ev.seed_hi
 
     con = duckdb.connect(config={"threads": 8})
     con.execute(
@@ -74,7 +84,7 @@ def main():
         print(f"{'    of which attested late AND wrong target':<48}"
               f"{fmt_pct(r.lw_b / r.tot):>16}{fmt_pct(r.lw_n / r.n):>21}")
 
-    window(args.baseline_lo, args.baseline_hi, "PRE-FUSAKA BASELINE")
+    window(args.baseline_lo, args.baseline_hi, ev.baseline_label)
     window(args.event_lo, args.event_hi, "EVENT WINDOW")
 
     print("\n--- per-epoch extremes, event window ---")
@@ -91,10 +101,10 @@ def main():
             """
         ).df().to_string(index=False)
     )
-    print("\ncross-check: the postmortem reports a 74.7% participation floor,")
-    print("~22.7% of the set offline, and an 18.5% missed-slot rate.")
+    if ev.postmortem_note:
+        print(f"\ncross-check: {ev.postmortem_note}.")
 
-    print("\n--- plateau detail (epochs where offline share > 20%) ---")
+    print(f"\n--- plateau detail (epochs where offline share > {ev.plateau_threshold*100:.0f}%) ---")
     print(
         con.sql(
             f"""
@@ -107,15 +117,19 @@ def main():
                      AS pct_of_non_full_attesters_that_were_dark
             FROM epochs
             WHERE epoch BETWEEN {args.event_lo} AND {args.event_hi}
-              AND offline_bal * 1.0 / assigned_bal > 0.20
+              AND offline_bal * 1.0 / assigned_bal > {ev.plateau_threshold}
             """
         ).df().to_string(index=False)
     )
 
+    from xatu_ingest import _local_name, days_covering as _dc
+    _gossip_days = [f"{d[:4]}-{int(d[5:7])}-{int(d[8:10])}" 
+                    for d in _dc(args.event_lo, args.event_hi)]
     gossip = sorted(
         os.path.join(args.data_dir, f)
         for f in os.listdir(args.data_dir)
         if f.startswith("gossipatt_") and f.endswith(".parquet")
+        and any(f.startswith("gossipatt_" + _d) for _d in _gossip_days)
     )
     if not gossip:
         print("\n(no gossipatt_*.parquet present -- skipping the p2p control)")
@@ -124,7 +138,14 @@ def main():
     print("\n--- p2p control: was the offline cohort silent on the network too? ---")
     glist = ", ".join(repr(p) for p in gossip)
     OFF = os.path.join(args.derived_dir, "offline_validators.parquet")
-    C = os.path.join(args.data_dir, "committee_2025-12-4.parquet")
+    from xatu_ingest import _local_name, days_covering
+    _days = days_covering(args.event_lo, args.event_hi)
+    _cands = [os.path.join(args.data_dir, _local_name("committee", d)) for d in _days]
+    _cands = [c for c in _cands if os.path.exists(c)]
+    if not _cands:
+        print(f"\n(no committee Parquet for {_days} -- skipping the p2p control)")
+        return
+    C = "read_parquet([" + ", ".join(repr(c) for c in _cands) + "])"
     lo, hi = con.sql(f"SELECT min(epoch), max(epoch) FROM read_parquet([{glist}])").fetchone()
     lo, hi = max(lo, args.event_lo), min(hi, args.event_hi)
     con.execute(
@@ -137,7 +158,7 @@ def main():
     con.execute(
         f"""
         CREATE TABLE assigned AS SELECT epoch, UNNEST(validators) AS validator
-        FROM read_parquet('{C}') WHERE epoch BETWEEN {lo} AND {hi}
+        FROM {C} WHERE epoch BETWEEN {lo} AND {hi}
         """
     )
     con.execute(
@@ -146,24 +167,34 @@ def main():
         WHERE epoch BETWEEN {lo} AND {hi}
         """
     )
-    print(
-        con.sql(
-            """
-            SELECT
-              count(*) FILTER (WHERE o.validator IS NULL) AS online_validator_epochs,
-              round(100.0 * count(*) FILTER (WHERE o.validator IS NULL AND s.validator IS NOT NULL)
-                    / count(*) FILTER (WHERE o.validator IS NULL), 3) AS pct_online_seen_in_gossip,
-              count(*) FILTER (WHERE o.validator IS NOT NULL) AS offline_validator_epochs,
-              round(100.0 * count(*) FILTER (WHERE o.validator IS NOT NULL AND s.validator IS NOT NULL)
-                    / count(*) FILTER (WHERE o.validator IS NOT NULL), 3) AS pct_offline_seen_in_gossip
-            FROM assigned a
-            LEFT JOIN off o USING (epoch, validator)
-            LEFT JOIN seen s USING (epoch, validator)
-            """
-        ).df().to_string(index=False)
-    )
+    ctrl = con.sql(
+        """
+        SELECT
+          count(*) FILTER (WHERE o.validator IS NULL) AS online_validator_epochs,
+          round(100.0 * count(*) FILTER (WHERE o.validator IS NULL AND s.validator IS NOT NULL)
+                / count(*) FILTER (WHERE o.validator IS NULL), 3) AS pct_online_seen_in_gossip,
+          count(*) FILTER (WHERE o.validator IS NOT NULL) AS offline_validator_epochs,
+          round(100.0 * count(*) FILTER (WHERE o.validator IS NOT NULL AND s.validator IS NOT NULL)
+                / count(*) FILTER (WHERE o.validator IS NOT NULL), 3) AS pct_offline_seen_in_gossip
+        FROM assigned a
+        LEFT JOIN off o USING (epoch, validator)
+        LEFT JOIN seen s USING (epoch, validator)
+        """
+    ).df()
+    print(ctrl.to_string(index=False))
     print(f"(gossip control over epochs {lo}-{hi}; sentry recall is the first "
           f"percentage and is the control for the second)")
+
+    recall_pct = float(ctrl["pct_online_seen_in_gossip"].iloc[0])
+    if recall_pct < 95.0:
+        print(
+            f"\n  !! SENTRY RECALL {recall_pct:.3f}% — THIS CONTROL FAILED.\n"
+            "     Absence from gossip cannot be read as validator silence at this\n"
+            "     coverage level, so the offline percentage above is NOT\n"
+            "     interpretable and must not be quoted.\n"
+            "     The flag breakdown earlier in this report is UNAFFECTED: it is\n"
+            "     derived from canonical chain data, not from sentry observations."
+        )
 
 
 if __name__ == "__main__":

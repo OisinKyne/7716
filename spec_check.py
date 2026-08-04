@@ -43,7 +43,14 @@ from eip7716_historical import (
     PENALTY_SLOPE,
     revised_factors,
 )
-from xatu_ingest import SLOTS_PER_EPOCH, TIMELY_SOURCE_MAX_DELAY, USER_AGENT
+from xatu_ingest import (
+    DENEB_EPOCH,
+    SLOTS_PER_EPOCH,
+    TIMELY_SOURCE_MAX_DELAY,
+    USER_AGENT,
+    _local_name,
+    epoch_utc,
+)
 
 SPEC_7716 = (
     "https://raw.githubusercontent.com/OisinKyne/consensus-specs/"
@@ -52,6 +59,15 @@ SPEC_7716 = (
 SPEC_DENEB = (
     "https://raw.githubusercontent.com/OisinKyne/consensus-specs/"
     "eip7716-anti-correlation-penalties/specs/deneb/beacon-chain.md"
+)
+# Pre-Dencun events must be checked against the Altair form of
+# get_attestation_participation_flag_indices, which bounds the timely-target
+# flag by inclusion_delay <= SLOTS_PER_EPOCH. Deneb (EIP-7045) removed that
+# bound. Checking a pre-Deneb event against the Deneb spec would pass while
+# validating the wrong rule.
+SPEC_ALTAIR = (
+    "https://raw.githubusercontent.com/OisinKyne/consensus-specs/"
+    "eip7716-anti-correlation-penalties/specs/altair/beacon-chain.md"
 )
 
 TIMELY_SOURCE_FLAG_INDEX = 0
@@ -159,9 +175,18 @@ def build_namespace(state_cls):
     return ns
 
 
-def load_spec_functions(verbose=True):
+def load_spec_functions(epoch, verbose=True):
+    """
+    Load the executable spec functions for the fork live at ``epoch``.
+
+    The EIP-7716 functions come from the PR branch regardless. The flag
+    function is fork-dependent: Altair pre-Dencun, Deneb from 269568 on.
+    """
     md7716 = fetch(SPEC_7716)
-    mddeneb = fetch(SPEC_DENEB)
+    pre_deneb = epoch < DENEB_EPOCH
+    flag_url = SPEC_ALTAIR if pre_deneb else SPEC_DENEB
+    flag_label = "altair" if pre_deneb else "deneb"
+    mdflags = fetch(flag_url)
     names_7716 = [
         "is_offline_in_previous_epoch",
         "get_slot_offline_balance",
@@ -176,22 +201,46 @@ def load_spec_functions(verbose=True):
         exec(compile(src, f"<spec:{name}>", "exec"), ns)
         if verbose:
             print(f"  loaded {name} from eip7716/beacon-chain.md", file=sys.stderr)
-    src = extract(mddeneb, "get_attestation_participation_flag_indices")
+    src = extract(mdflags, "get_attestation_participation_flag_indices")
     exec(compile(src, "<spec:flags>", "exec"), ns)
     ns["_flag_src"] = src
     if verbose:
-        print("  loaded get_attestation_participation_flag_indices from deneb/beacon-chain.md",
-              file=sys.stderr)
+        print(f"  loaded get_attestation_participation_flag_indices from "
+              f"{flag_label}/beacon-chain.md  (epoch {epoch}, "
+              f"{'pre' if pre_deneb else 'post'}-Deneb)", file=sys.stderr)
     return ns
 
 
 # ---------------------------------------------------------------- fixtures
+def _day_sources(kind, epoch, data_dir):
+    """
+    Local Parquet for the epoch's own UTC day plus the following day.
+
+    Attestations for an epoch near a day boundary are included in blocks that
+    land on the next day, so a single-day read silently loses them and inflates
+    the offline count. Only files that exist are included, so a run whose pull
+    range stops at the epoch still works.
+    """
+    days = [epoch_utc(epoch).date().isoformat(),
+            epoch_utc(epoch + SLOTS_PER_EPOCH).date().isoformat()]
+    paths = []
+    for d in dict.fromkeys(days):  # de-dup, preserve order
+        p = os.path.join(data_dir, _local_name(kind, d))
+        if os.path.exists(p) and p not in paths:
+            paths.append(p)
+    if not paths:
+        raise FileNotFoundError(
+            f"no local {kind} Parquet for epoch {epoch} "
+            f"(looked for {days} in {data_dir})"
+        )
+    return "read_parquet([" + ", ".join(f"'{p}'" for p in paths) + "])"
+
+
 def build_epoch_state(con, epoch, data_dir, derived_dir, smoothed, snap_epoch, snap_file):
     """Real committees + effective balances + derived flags for one epoch."""
-    day = "2025-12-4"
-    committee_src = f"read_parquet('{data_dir}/committee_{day}.parquet')"
-    att_src = f"read_parquet('{data_dir}/attestation_{day}.parquet')"
-    block_src = f"read_parquet('{data_dir}/block_{day}.parquet')"
+    committee_src = _day_sources("committee", epoch, data_dir)
+    att_src = _day_sources("attestation", epoch, data_dir)
+    block_src = _day_sources("block", epoch, data_dir)
     val_src = f"read_parquet('{snap_file}')"
 
     lo, hi = epoch * SLOTS_PER_EPOCH, epoch * SLOTS_PER_EPOCH + SLOTS_PER_EPOCH - 1
@@ -259,10 +308,24 @@ def main():
     ap.add_argument("--data-dir", default="data/xatu")
     ap.add_argument("--derived-dir", default="data/derived")
     ap.add_argument("--epochs", type=int, nargs="+", default=[411441, 411450, 411465, 411480])
+    ap.add_argument(
+        "--seed-lo", type=int, default=411200,
+        help="first epoch of the baseline window used to seed the moving average "
+             "(default: the 2025-12 run's window)",
+    )
+    ap.add_argument(
+        "--seed-hi", type=int, default=411391,
+        help="last epoch of the baseline window (default: the 2025-12 run's window)",
+    )
     args = ap.parse_args()
 
     print("loading spec functions from consensus-specs...", file=sys.stderr)
-    ns = load_spec_functions()
+    if min(args.epochs) < DENEB_EPOCH <= max(args.epochs):
+        sys.exit(
+            f"error: --epochs straddles the Deneb boundary ({DENEB_EPOCH}); the "
+            "timely-target rule differs either side. Check each fork separately."
+        )
+    ns = load_spec_functions(min(args.epochs))
 
     con = duckdb.connect(config={"threads": 8, "memory_limit": "8GB"})
     slots = con.sql(
@@ -307,7 +370,14 @@ def main():
     for epoch in args.epochs:
         ours = slots[slots.epoch == epoch].sort_values("slot")
         # seed both with the same moving average: the mean baseline offline balance
-        seed = int(slots[slots.epoch.between(411200, 411391)].offline_bal.mean())
+        window = slots[slots.epoch.between(args.seed_lo, args.seed_hi)].offline_bal
+        if window.empty or window.isna().all():
+            sys.exit(
+                f"error: seed window {args.seed_lo}-{args.seed_hi} has no slots in "
+                f"{args.derived_dir}. Pass --seed-lo/--seed-hi matching the run "
+                "being checked."
+            )
+        seed = int(window.mean())
         st = states[epoch]
         st.smoothed_offline_balance = seed
         spec_factors = ns["get_slot_penalty_factors"](st)
@@ -327,7 +397,7 @@ def main():
     print("\n=== 3. process_smoothed_offline_balance vs the EMA carried by revised_factors() ===")
     for epoch in args.epochs[:1]:
         ours = slots[slots.epoch == epoch].sort_values("slot")
-        seed = int(slots[slots.epoch.between(411200, 411391)].offline_bal.mean())
+        seed = int(slots[slots.epoch.between(args.seed_lo, args.seed_hi)].offline_bal.mean())
         st = states[epoch]
         st.smoothed_offline_balance = seed
         ns["process_smoothed_offline_balance"](st)
@@ -349,14 +419,20 @@ def main():
               f"-> {'OK' if good else 'MISMATCH'}")
 
     print("\n=== 4. get_attestation_participation_flag_indices vs the SQL flag rules ===")
-    ok &= check_flag_rules(ns)
+    ok &= check_flag_rules(ns, pre_deneb=min(args.epochs) < DENEB_EPOCH)
 
     print("\nRESULT:", "all checks passed" if ok else "FAILURES PRESENT")
     return 0 if ok else 1
 
 
-def check_flag_rules(ns):
-    """Drive the Deneb spec function over the flag-relevant case grid."""
+def check_flag_rules(ns, pre_deneb: bool):
+    """
+    Drive the loaded spec function over the flag-relevant case grid.
+
+    ``pre_deneb`` must match the fork the spec function was loaded for, because
+    the expected ("want") side mirrors what xatu_ingest.py's SQL asserts, and
+    that rule is itself fork-dependent (see `timely_target_expr`).
+    """
     justified = Checkpoint(10, b"J")
     canonical_target = b"T"
     canonical_head = b"H"
@@ -392,7 +468,9 @@ def check_flag_rules(ns):
                 want = set()
                 if delay <= TIMELY_SOURCE_MAX_DELAY:
                     want.add(TIMELY_SOURCE_FLAG_INDEX)
-                if target_ok:
+                # Altair bounded target by inclusion_delay <= SLOTS_PER_EPOCH;
+                # EIP-7045 (Deneb) removed that bound.
+                if target_ok and (not pre_deneb or delay <= SLOTS_PER_EPOCH):
                     want.add(TIMELY_TARGET_FLAG_INDEX)
                 if target_ok and head_ok and delay == 1:
                     want.add(TIMELY_HEAD_FLAG_INDEX)

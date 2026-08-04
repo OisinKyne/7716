@@ -20,15 +20,18 @@ Three tables are used, all daily-partitioned on the *attested/assigned* slot:
 Flag derivation
 ---------------
 No public dataset stores participation flags. They are derived here exactly as
-`get_attestation_participation_flag_indices` does, post-EIP-7045 (Deneb):
+`get_attestation_participation_flag_indices` does, under the consensus rules
+live at the epochs being scored:
 
   is_matching_source  -- guaranteed. `process_attestation` asserts it, so every
                          attestation that made it into a canonical block matched
                          the justified checkpoint. (Confirmed empirically: one
                          distinct source_root per epoch across the pull range.)
   TIMELY_SOURCE       <- inclusion_delay <= integer_squareroot(SLOTS_PER_EPOCH) = 5
-  TIMELY_TARGET       <- target_root == get_block_root(state, epoch)
-                         (EIP-7045 removed the inclusion-delay bound on target)
+  TIMELY_TARGET       <- target_root == get_block_root(state, epoch), and
+                         pre-Deneb also inclusion_delay <= SLOTS_PER_EPOCH.
+                         EIP-7045 (Dencun, epoch 269568) removed that bound, so
+                         the rule is fork-dependent -- see `timely_target_expr`.
   TIMELY_HEAD         <- matching target AND beacon_block_root == canonical root
                          at the attested slot AND inclusion_delay == 1
 
@@ -66,6 +69,48 @@ SLOTS_PER_EPOCH = 32
 SECONDS_PER_SLOT = 12
 # integer_squareroot(SLOTS_PER_EPOCH); the timely-source inclusion bound
 TIMELY_SOURCE_MAX_DELAY = 5
+
+# Deneb (Dencun) activation. EIP-7045 shipped here and removed the
+# inclusion-delay bound on the timely-target flag. Before this epoch the
+# protocol awarded TIMELY_TARGET only if inclusion_delay <= SLOTS_PER_EPOCH;
+# from this epoch on, a matching target earns the flag at any delay.
+#
+# Scoring a pre-Deneb event with the post-Deneb rule credits validators whose
+# attestations landed after 32 slots, understating the offline share and so
+# understating the penalty factor. Scoring a post-Deneb event with the
+# pre-Deneb rule does the reverse. Neither is a free choice: the rule is a
+# property of the chain at that epoch, not of this model.
+DENEB_EPOCH = 269_568
+
+# Hours (UTC) at which to pull a canonical_beacon_validators snapshot for each
+# day of the range. Effective balance only moves at epoch boundaries and only
+# through the hysteresis band, so two a day is ample; the point is that a
+# snapshot from the *right era* always exists.
+SNAPSHOT_HOURS = (0, 12)
+
+# A snapshot this far from the epoch being scored is not an approximation, it
+# is a different validator set. ~2000 epochs is about 9 days.
+MAX_SNAPSHOT_DISTANCE_EPOCHS = 2_000
+
+
+def timely_target_expr(epoch_lo: int, epoch_hi: int) -> str:
+    """
+    SQL for the TIMELY_TARGET flag under the consensus rules live at these
+    epochs. Refuses ranges that straddle the Deneb boundary rather than
+    silently applying one rule to both sides.
+    """
+    if epoch_lo < DENEB_EPOCH <= epoch_hi:
+        raise ValueError(
+            f"epoch range {epoch_lo}-{epoch_hi} straddles the Deneb boundary "
+            f"({DENEB_EPOCH}); the timely-target rule differs either side. "
+            "Split the run into a pre-Deneb and a post-Deneb range."
+        )
+    if epoch_hi < DENEB_EPOCH:
+        # Altair form: matching target AND included within the epoch.
+        return f"bool_or(target_ok AND delay <= {SLOTS_PER_EPOCH})"
+    # Deneb form (EIP-7045): matching target, no delay bound.
+    return "bool_or(target_ok)"
+
 
 XATU_BASE = "https://data.ethpandaops.io/xatu/mainnet/databases/default"
 # the CDN 403s the default urllib agent
@@ -185,13 +230,35 @@ class Ingest:
             if not paths:
                 raise SystemExit(f"no {kind} partitions available for {self.dates}")
             self.files[kind] = paths
+        # Validator snapshots must come from THIS epoch range. They used to be
+        # globbed from data_dir with no date filter, so a run for one era would
+        # silently reuse snapshots left behind by a run for another: wrong
+        # effective balances, wrong total_active_balance, and therefore a wrong
+        # slot_reference_balance in the denominator of every penalty factor.
+        #
+        # Only download for dates that have no snapshot yet, so a range already
+        # populated by an earlier run reproduces bit-for-bit.
+        prefixes = {
+            d: f"validators_{d[:4]}-{int(d[5:7])}-{int(d[8:10])}_h" for d in self.dates
+        }
+        on_disk = os.listdir(self.data_dir)
+        for d, prefix in prefixes.items():
+            if any(f.startswith(prefix) and f.endswith(".parquet") for f in on_disk):
+                continue
+            for hour in SNAPSHOT_HOURS:
+                ensure_validator_snapshot(self.data_dir, d, hour, verbose=True)
+
         self.validator_files = sorted(
             os.path.join(self.data_dir, f)
             for f in os.listdir(self.data_dir)
-            if f.startswith("validators_") and f.endswith(".parquet")
+            if f.endswith(".parquet")
+            and any(f.startswith(p) for p in prefixes.values())
         )
         if not self.validator_files:
-            raise SystemExit("no canonical_beacon_validators snapshots in data dir")
+            raise SystemExit(
+                "no canonical_beacon_validators snapshots available for "
+                f"{self.dates}; cannot score these epochs"
+            )
 
     def _src(self, kind: str) -> str:
         lst = ", ".join(repr(p) for p in self.files[kind])
@@ -279,7 +346,18 @@ class Ingest:
         )
 
     def _nearest_snapshot(self, epoch: int) -> int:
-        return min(self.snap_epochs, key=lambda s: abs(s - epoch))
+        snap = min(self.snap_epochs, key=lambda s: abs(s - epoch))
+        if abs(snap - epoch) > MAX_SNAPSHOT_DISTANCE_EPOCHS:
+            raise SystemExit(
+                f"nearest validator snapshot for epoch {epoch} is epoch {snap}, "
+                f"{abs(snap - epoch):,} epochs away "
+                f"(~{abs(snap - epoch) * 384 / 86400:.0f} days). Effective "
+                "balances and total_active_balance from the wrong era would "
+                "corrupt every penalty factor. Delete stale validators_*.parquet "
+                "from the data dir, or widen SNAPSHOT_HOURS so a nearby snapshot "
+                "downloads."
+            )
+        return snap
 
     # -------------------------------------------------------------- flags
     def run(self, chunk: int = 20, verbose: bool = True):
@@ -367,7 +445,7 @@ class Ingest:
             )
             SELECT epoch, validator,
                    bool_or(delay <= {TIMELY_SOURCE_MAX_DELAY}) AS timely_source,
-                   bool_or(target_ok) AS timely_target,
+                   {timely_target_expr(lo, hi)} AS timely_target,
                    bool_or(target_ok AND head_ok AND delay = 1) AS timely_head,
                    min(delay) AS min_delay
             FROM att GROUP BY epoch, validator

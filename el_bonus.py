@@ -34,10 +34,25 @@ GENESIS_TIME = 1_606_824_023
 
 
 def measure(data_dir="data/xatu", total_active_balance_gwei=35_632_266_500_000_000,
-            block_production_rate=0.993):
+            block_production_rate=0.993, date_prefixes=None):
+    """
+    ``total_active_balance_gwei`` and the MEV partitions must both come from the
+    era being scored. The default is the 2025-12 value; pass the real figure for
+    any other event. ``date_prefixes`` restricts which mevpayload_ files are
+    read (e.g. ("2024-1-", "2023-12-")); without it every file in the data dir
+    is used, which silently mixes eras when more than one event is on disk.
+    """
     files = sorted(glob.glob(os.path.join(data_dir, "mevpayload_*.parquet")))
+    if date_prefixes:
+        files = [f for f in files
+                 if any(os.path.basename(f).startswith(f"mevpayload_{p}")
+                        for p in date_prefixes)]
     if not files:
-        raise SystemExit("no mevpayload_*.parquet in data dir; see README for the fetch")
+        raise SystemExit(
+            "no matching mevpayload_*.parquet in data dir"
+            + (f" for {date_prefixes}" if date_prefixes else "")
+            + "; see README for the fetch"
+        )
     con = duckdb.connect(config={"threads": 6})
     lst = ", ".join(repr(f) for f in files)
     df = con.sql(f"SELECT slot, epoch, value FROM read_parquet([{lst}])").df()
@@ -79,8 +94,17 @@ def measure(data_dir="data/xatu", total_active_balance_gwei=35_632_266_500_000_0
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--data-dir", default="data/xatu")
+    ap.add_argument(
+        "--total-active-balance-gwei", type=int, default=35_632_266_500_000_000,
+        help="total active balance for the era being scored (default: 2025-12)",
+    )
+    ap.add_argument(
+        "--date-prefixes", nargs="*", default=None,
+        help="restrict mevpayload files, e.g. --date-prefixes 2024-1- 2023-12-",
+    )
     args = ap.parse_args()
-    out = measure(args.data_dir)
+    out = measure(args.data_dir, args.total_active_balance_gwei,
+                  date_prefixes=args.date_prefixes)
     w = max(len(k) for k in out)
     for k, v in out.items():
         print(f"{k:<{w}}  {v:.6g}" if isinstance(v, float) else f"{k:<{w}}  {v}")

@@ -8,7 +8,7 @@ Same styling and palette as `gen_figures.py`, so the two sets sit together:
   gray  #52514e -> status quo (no correlation penalties)
 Color follows the entity across every figure.
 
-Writes figures/h1..h5.
+Writes figures/<prefix>1..5 for the selected --event.
 """
 
 import json
@@ -38,12 +38,26 @@ plt.rcParams.update({
 })
 
 FIGDIR = "figures"
-RESULTS = "results"
-DERIVED = "data/derived"
+import argparse as _argparse
+
+import events as _events
+
+_ap = _argparse.ArgumentParser(description=__doc__)
+_events.add_event_arg(_ap)
+_ap.add_argument("--results-dir", default=None)
+_ap.add_argument("--derived-dir", default=None)
+_ap.add_argument("--fig-dir", default="figures")
+_args = _ap.parse_args()
+
+SPEC = _events.get(_args.event)
+RESULTS = _args.results_dir or SPEC.results_dir
+DERIVED = _args.derived_dir or SPEC.derived_dir
+PREFIX = SPEC.fig_prefix
 os.makedirs(FIGDIR, exist_ok=True)
 
-EVENT_LO, EVENT_HI = 411439, 411480
-FUSAKA = 411392
+EVENT_LO, EVENT_HI = SPEC.event_lo, SPEC.event_hi
+MARKER = SPEC.marker_epoch
+MARKER_LABEL = SPEC.marker_label
 GENESIS, SECONDS_PER_SLOT = 1_606_824_023, 12
 
 con = duckdb.connect(config={"threads": 8})
@@ -64,7 +78,7 @@ def hours_since_onset(epoch_or_slot, is_slot=False):
 
 # --------------------------------------------- H1: the Step 0 answer, visually
 def h1():
-    e = epochs[(epochs.epoch >= FUSAKA - 12) & (epochs.epoch <= EVENT_HI + 20)].copy()
+    e = epochs[(epochs.epoch >= (MARKER or EVENT_LO) - 12) & (epochs.epoch <= EVENT_HI + 20)].copy()
     x = hours_since_onset(e.epoch.to_numpy())
     tot = e.assigned_bal.to_numpy()
     offline = e.offline_bal.to_numpy() / tot * 100
@@ -79,33 +93,33 @@ def h1():
     ax.fill_between(x, offline + src_only, offline + src_only + tgt_only,
                     color=GRAY, alpha=0.9, lw=0, label="missed source, timely target — not scaled")
     ax.axvline(0, color=AXIS, lw=1)
-    ax.axvline(hours_since_onset(FUSAKA), color=AXIS, lw=1)
-    ax.text(hours_since_onset(FUSAKA) - 0.25, 7.5, "Fusaka activation", color=MUTED,
-            fontsize=9.5, rotation=90, va="bottom", ha="center")
+    if MARKER is not None:
+        ax.axvline(hours_since_onset(MARKER), color=AXIS, lw=1)
+        ax.text(hours_since_onset(MARKER) - 0.25, 7.5, MARKER_LABEL, color=MUTED,
+                fontsize=9.5, rotation=90, va="bottom", ha="center")
     ax.text(-0.25, 7.5, "postmortem window opens", color=MUTED, fontsize=9.5,
             rotation=90, va="bottom", ha="center")
-    ax.annotate(
-        "97.8% of the non-attesting stake\nat the plateau missed both flags:\ndark, not slow",
-        xy=(1.6, 22.6), xytext=(3.3, 15.4), color=INK, fontsize=10,
-        arrowprops=dict(arrowstyle="-", color=INK, lw=1))
-    ax.text(-4.35, 5.0,
-            "a smaller cohort went dark at\nFusaka activation, five hours\n"
-            "before the main event:\ntwo root causes, one trigger",
-            color=MUTED, fontsize=9, va="bottom")
-    ax.set_xlabel("hours from the start of the postmortem window (2025-12-04 02:49:59Z)")
+    if SPEC.h1_callout:
+        _t, _xy, _xytext = SPEC.h1_callout
+        ax.annotate(_t, xy=_xy, xytext=_xytext, color=INK, fontsize=10,
+                    arrowprops=dict(arrowstyle="-", color=INK, lw=1))
+    if SPEC.h1_note:
+        _t, _x, _y = SPEC.h1_note
+        ax.text(_x, _y, _t, color=MUTED, fontsize=9, va="bottom")
+    ax.set_xlabel(f"hours from the start of the postmortem window ({SPEC.window_label or SPEC.subtitle})")
     ax.set_ylabel("share of active stake (%)")
     ax.set_ylim(0, 30)
     ax.set_xlim(-7, 7)
     ax.set_title("Step 0: the missing stake missed both flags, so the factor applies")
     ax.legend(loc="upper left", fontsize=9.5, bbox_to_anchor=(0.0, 1.0))
     fig.tight_layout()
-    fig.savefig(f"{FIGDIR}/h1_flag_breakdown.png")
+    fig.savefig(f"{FIGDIR}/{PREFIX}1_flag_breakdown.png")
     plt.close(fig)
 
 
 # ------------------------------------------- H2: factor trajectory, real data
 def h2():
-    s = slots[(slots.epoch >= FUSAKA - 10) & (slots.epoch <= EVENT_HI + 26)].copy()
+    s = slots[(slots.epoch >= (MARKER or EVENT_LO) - 10) & (slots.epoch <= EVENT_HI + 26)].copy()
     x = hours_since_onset(s.slot.to_numpy(), is_slot=True)
     FLOOR = 0.68
     # a validator attests once per epoch, in one slot of it, so the quantity it
@@ -123,24 +137,30 @@ def h2():
     ax.plot(xe, ep_mean.factor_revised, color=BLUE, lw=1.8,
             label="Revised mechanism (381 / 128)", zorder=4)
     ax.plot(x, np.ones(len(x)), color=GRAY, lw=1.5, ls=(0, (4, 3)), label="Status quo", zorder=5)
-    ax.axvline(hours_since_onset(FUSAKA), color=AXIS, lw=1, zorder=1)
+    if MARKER is not None:
+        ax.axvline(hours_since_onset(MARKER), color=AXIS, lw=1, zorder=1)
     ax.set_yscale("log")
     ax.set_ylim(0.30, 900)
     ax.set_yticks([1, 4, 16, 64, 128])
     ax.set_yticklabels(["1x", "4x", "16x", "64x", "128x"])
     ax.axhline(128, color=AXIS, lw=1, zorder=1)
-    ax.text(-5.6, 152, "MAX_PENALTY_FACTOR = 128 — never reached: peak offline 29.8% < 33%",
+    _peak = SUMMARY["peak_offline_share"] * 100
+    ax.text(-5.6, 152,
+            f"MAX_PENALTY_FACTOR = 128 — never reached: peak offline {_peak:.1f}% < 33%",
             color=MUTED, fontsize=9)
-    ax.text(hours_since_onset(FUSAKA) + 0.12, 330, "Fusaka\nactivation", color=MUTED, fontsize=9)
+    if MARKER is not None:
+        ax.text(hours_since_onset(MARKER) + 0.12, 330,
+                (MARKER_LABEL or "").replace(" ", "\n"), color=MUTED, fontsize=9)
     ax.annotate(f"peak {SUMMARY['factor_revised']['max']}x",
                 xy=(0.55, SUMMARY["factor_revised"]["max"]), xytext=(-1.9, 300),
                 color=BLUE, fontsize=10, arrowprops=dict(arrowstyle="-", color=BLUE, lw=1))
-    ax.annotate("the first cohort alone already prices at ~8x",
-                xy=(-3.0, 8.0), xytext=(-5.9, 26), color=BLUE, fontsize=9.5,
-                arrowprops=dict(arrowstyle="-", color=BLUE, lw=1))
+    if SPEC.h2_callout:
+        _t2, _xy2, _xyt2 = SPEC.h2_callout
+        ax.annotate(_t2, xy=_xy2, xytext=_xyt2, color=BLUE, fontsize=9.5,
+                    arrowprops=dict(arrowstyle="-", color=BLUE, lw=1))
     ax.annotate("the counter renormalises inside one epoch and never leaves 1x again;\n"
                 "faint: the per-slot series, which dithers 0x-4x even at baseline because\n"
-                "NET_EXCESS_PENALTIES is an integer near 0.4 at a 0.3% offline rate",
+                f"NET_EXCESS_PENALTIES is an integer near 0.4 at a {SUMMARY['seed_offline_share']*100:.1f}% offline rate",
                 xy=(1.2, 1.0), xytext=(-4.6, 0.315), color=GREEN, fontsize=9,
                 arrowprops=dict(arrowstyle="-", color=GREEN, lw=1))
     ax.set_xlabel("hours from onset (shaded: the 42 postmortem epochs); "
@@ -149,7 +169,7 @@ def h2():
     ax.set_title("Penalty factor the two mechanisms would have produced")
     ax.legend(loc="upper right", fontsize=10)
     fig.tight_layout()
-    fig.savefig(f"{FIGDIR}/h2_factor_trajectory_real.png")
+    fig.savefig(f"{FIGDIR}/{PREFIX}2_factor_trajectory_real.png")
     plt.close(fig)
 
 
@@ -175,8 +195,9 @@ def h3():
     ax.set_xticklabels(labels)
     ax.set_ylim(0, 3.05)
     ax.set_ylabel("days of normal income to earn the loss back")
-    ax.set_title("What the December 2025 outage cost a caught validator, per 32 ETH")
-    ax.annotate("as drafted, the event costs 1.01x what it costs today —\n"
+    ax.set_title(f"What the {SPEC.title} cost a caught validator, per 32 ETH")
+    _drafted_x = ev["original"]["mean_days_to_recoup"] / ev["status_quo"]["mean_days_to_recoup"]
+    ax.annotate(f"as drafted, the event costs {_drafted_x:.2f}x what it costs today —\n"
                 "the counter absorbs it inside one epoch",
                 xy=(1.0, 0.20), xytext=(0.05, 1.35), color=GREEN, fontsize=10,
                 arrowprops=dict(arrowstyle="-", color=GREEN, lw=1))
@@ -184,14 +205,18 @@ def h3():
                 "the status quo",
                 xy=(1.81, 2.40), xytext=(1.02, 2.68), color=BLUE, fontsize=10,
                 arrowprops=dict(arrowstyle="-", color=BLUE, lw=1))
+    _t = SUMMARY["event_plus_tail"]
+    _sq_growth = _t["status_quo"]["mean_days_to_recoup"] / ev["status_quo"]["mean_days_to_recoup"] - 1
+    _rv_growth = _t["revised"]["mean_days_to_recoup"] / ev["revised"]["mean_days_to_recoup"] - 1
     ax.text(0, -0.235,
-            "Solid: the 42 postmortem epochs. Faded: through the full recovery tail "
-            "(to epoch 411700).\nThe status-quo cost nearly doubles over the tail; the "
-            "revised cost rises 3% — the charge is front-loaded onto\nthe correlated "
+            f"Solid: the {SPEC.n_epochs} postmortem epochs. Faded: through the full "
+            f"recovery tail (to epoch {SPEC.tail_hi}).\nThe status-quo cost rises "
+            f"{_sq_growth * 100:.1f}% over the tail; the revised cost rises "
+            f"{_rv_growth * 100:.0f}% — the charge is front-loaded onto\nthe correlated "
             "onset, not onto how long a solo staker takes to recover.",
             transform=ax.transAxes, color=MUTED, fontsize=9, va="top")
     fig.tight_layout()
-    fig.savefig(f"{FIGDIR}/h3_days_to_recoup.png", bbox_inches="tight")
+    fig.savefig(f"{FIGDIR}/{PREFIX}3_days_to_recoup.png", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -220,12 +245,12 @@ def h4():
     ax.set_title(f"Spread across the {len(costs):,} validators caught in the outage")
     ax.legend(loc="upper left", fontsize=10)
     ax.text(0.44, 0.90,
-            "the flat shelf near the bottom of each\ncurve is the ~20% of the cohort that\n"
+            "the flat shelf near the bottom of each\ncurve is the shallow cohort that\n"
             "missed only one or two epochs; the\nsteep rise at the top is the deep\n"
             "cohort, down for most of the event",
             transform=ax.transAxes, color=MUTED, fontsize=9, ha="left", va="top")
     fig.tight_layout()
-    fig.savefig(f"{FIGDIR}/h4_loss_distribution.png")
+    fig.savefig(f"{FIGDIR}/{PREFIX}4_loss_distribution.png")
     plt.close(fig)
 
 
@@ -264,7 +289,7 @@ def h5():
             "seen in gossip, so absence\nfrom gossip is evidence, not a coverage gap",
             transform=ax.transAxes, color=MUTED, fontsize=9, ha="right", va="top")
     fig.tight_layout()
-    fig.savefig(f"{FIGDIR}/h5_attribution.png")
+    fig.savefig(f"{FIGDIR}/{PREFIX}5_attribution.png")
     plt.close(fig)
 
 

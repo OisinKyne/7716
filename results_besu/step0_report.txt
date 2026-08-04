@@ -1,0 +1,33 @@
+
+PRE-EVENT BASELINE  (epochs 254278-254469, 192 epochs)
+                                                  share of stake  share of validators
+attested fully (timely source AND target)                99.207%              99.206%
+timely source, missed target   [NOT scaled]               0.212%               0.212%
+missed source, timely target   [NOT scaled]               0.216%               0.216%
+missed BOTH  ->  OFFLINE       [SCALED]                   0.365%               0.366%
+    of which no attestation included at all               0.355%               0.355%
+    of which attested late AND wrong target               0.010%               0.010%
+
+EVENT WINDOW  (epochs 254470-254594, 125 epochs)
+                                                  share of stake  share of validators
+attested fully (timely source AND target)                98.243%              98.242%
+timely source, missed target   [NOT scaled]               0.263%               0.263%
+missed source, timely target   [NOT scaled]               0.239%               0.239%
+missed BOTH  ->  OFFLINE       [SCALED]                   1.255%               1.256%
+    of which no attestation included at all               1.245%               1.246%
+    of which attested late AND wrong target               0.010%               0.010%
+
+--- per-epoch extremes, event window ---
+ min_target_participation  at_epoch  max_offline_share  peak_epoch  missed_slot_rate
+                 0.941812    254471           0.031986      254472            0.0285
+
+cross-check: Lane B catalogued ~3.5% of validators affected over 13.3h; no participation floor or missed-slot rate was published.
+
+--- plateau detail (epochs where offline share > 2%) ---
+ epochs  mean_offline_pct  mean_src_only_pct  mean_tgt_only_pct  pct_of_non_full_attesters_that_were_dark
+     10              2.67              0.316              0.324                                     85.12
+
+--- p2p control: was the offline cohort silent on the network too? ---
+ online_validator_epochs  pct_online_seen_in_gossip  offline_validator_epochs  pct_offline_seen_in_gossip
+               111527694                     99.995                   1418174                      10.842
+(gossip control over epochs 254470-254594; sentry recall is the first percentage and is the control for the second)

@@ -51,25 +51,58 @@ import sys
 
 import duckdb
 
-CHRONIC_LO, CHRONIC_HI = 411200, 411391  # pre-Fusaka baseline
-CHRONIC_MIN_EPOCHS = 96  # offline in >= half the baseline window
+import events
+
+# The behavioural split reads absence-from-gossip as evidence a validator was
+# silent. That inference is only valid when sentry coverage is near-total, which
+# is what the recall control measures. Below this floor the "silent" bucket is
+# measuring sentry coverage rather than validator behaviour, so the
+# classification is refused outright instead of being published with a caveat
+# nobody reads. Observed: 99.996% (2025-12-04), 99.995% (2024-01-06),
+# 7.953% (2024-01-21 -- refused).
+MIN_SENTRY_RECALL_PCT = 95.0
+
+# 'chronic' = already offline through this event's own baseline window,
+# so it must be the event's window, not another era's.
+CHRONIC_MIN_FRACTION = 0.5  # offline in >= half the baseline window
 
 
-def gossip_files(data_dir: str) -> list[str]:
+def _day_src(data_dir: str, kind: str, days: list[str]) -> str:
+    from xatu_ingest import _local_name
+    paths = [os.path.join(data_dir, _local_name(kind, d)) for d in days]
+    paths = [p for p in paths if os.path.exists(p)]
+    if not paths:
+        raise SystemExit(f"no {kind} Parquet for {days} in {data_dir}")
+    return "read_parquet([" + ", ".join(repr(p) for p in paths) + "])"
+
+
+def gossip_files(data_dir: str, days: list[str]) -> list[str]:
+    """
+    Sentry partitions for THIS event's days only. An unfiltered glob would
+    attribute one era's offline cohort using another era's p2p observations
+    whenever more than one event is on disk -- silently, with no error.
+    """
+    # gossipatt_ files are named with un-zero-padded month/day
+    prefixes = tuple(
+        f"gossipatt_{d[:4]}-{int(d[5:7])}-{int(d[8:10])}_" for d in days
+    )
     return sorted(
         os.path.join(data_dir, f)
         for f in os.listdir(data_dir)
-        if f.startswith("gossipatt_") and f.endswith(".parquet")
+        if f.startswith(prefixes) and f.endswith(".parquet")
     )
 
 
-def build(con, data_dir, derived_dir, epoch_lo, epoch_hi):
-    gfiles = gossip_files(data_dir)
+def build(con, data_dir, derived_dir, epoch_lo, epoch_hi, days,
+          chronic_lo, chronic_hi, chronic_min_epochs):
+    gfiles = gossip_files(data_dir, days)
     if not gfiles:
-        raise SystemExit("no gossipatt_*.parquet in data dir")
+        raise SystemExit(
+            f"no gossipatt_*.parquet for {days} in {data_dir}; "
+            "download this event's sentry partitions first")
     glist = ", ".join(repr(p) for p in gfiles)
     G = f"read_parquet([{glist}])"
-    A = f"read_parquet('{os.path.join(data_dir, 'attestation_2025-12-4.parquet')}')"
+    A = _day_src(data_dir, "attestation", days)
     OFF = f"read_parquet('{os.path.join(derived_dir, 'offline_validators.parquet')}')"
 
     covered = con.sql(f"SELECT min(epoch), max(epoch) FROM {G}").fetchone()
@@ -102,8 +135,8 @@ def build(con, data_dir, derived_dir, epoch_lo, epoch_hi):
         f"""
         CREATE OR REPLACE TABLE chronic AS
         SELECT validator FROM {OFF}
-        WHERE epoch BETWEEN {CHRONIC_LO} AND {CHRONIC_HI}
-        GROUP BY validator HAVING count(*) >= {CHRONIC_MIN_EPOCHS}
+        WHERE epoch BETWEEN {chronic_lo} AND {chronic_hi}
+        GROUP BY validator HAVING count(*) >= {chronic_min_epochs}
         """
     )
     con.execute(
@@ -126,9 +159,9 @@ def build(con, data_dir, derived_dir, epoch_lo, epoch_hi):
     return lo, hi
 
 
-def recall(con, data_dir, lo, hi):
+def recall(con, data_dir, lo, hi, days):
     """Share of on-chain-included validators also seen in gossip -- sentry recall."""
-    C = f"read_parquet('{os.path.join(data_dir, 'committee_2025-12-4.parquet')}')"
+    C = _day_src(data_dir, "committee", days)
     OFF_TBL = "offline_classified"
     return con.sql(
         f"""
@@ -151,20 +184,48 @@ def recall(con, data_dir, lo, hi):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
+    events.add_event_arg(ap)
     ap.add_argument("--data-dir", default="data/xatu")
-    ap.add_argument("--derived-dir", default="data/derived")
-    ap.add_argument("--out-dir", default="results")
-    ap.add_argument("--epoch-lo", type=int, default=411439)
-    ap.add_argument("--epoch-hi", type=int, default=411480)
+    ap.add_argument("--derived-dir", default=None)
+    ap.add_argument("--out-dir", default=None)
+    ap.add_argument("--epoch-lo", type=int, default=None)
+    ap.add_argument("--epoch-hi", type=int, default=None)
     args = ap.parse_args()
+
+    spec = events.get(args.event)
+    args.derived_dir = args.derived_dir or spec.derived_dir
+    args.out_dir = args.out_dir or spec.results_dir
+    args.epoch_lo = args.epoch_lo if args.epoch_lo is not None else spec.event_lo
+    args.epoch_hi = args.epoch_hi if args.epoch_hi is not None else spec.event_hi
+
+    from xatu_ingest import days_covering
+    # ISO throughout; gossip_files() and _local_name() each do their own
+    # filename formatting, so converting here would double-convert.
+    days = days_covering(args.epoch_lo, args.epoch_hi)
+    chronic_lo, chronic_hi = spec.seed_lo, spec.seed_hi
+    chronic_min_epochs = int((chronic_hi - chronic_lo + 1) * CHRONIC_MIN_FRACTION)
 
     os.makedirs(args.out_dir, exist_ok=True)
     con = duckdb.connect(config={"threads": 8, "memory_limit": "12GB"})
-    lo, hi = build(con, args.data_dir, args.derived_dir, args.epoch_lo, args.epoch_hi)
+    lo, hi = build(con, args.data_dir, args.derived_dir, args.epoch_lo, args.epoch_hi,
+                   days, chronic_lo, chronic_hi, chronic_min_epochs)
 
-    rec = recall(con, args.data_dir, lo, hi)
+    rec = recall(con, args.data_dir, lo, hi, days)
     print("\n--- sentry recall control ---")
     print(rec.to_string(index=False))
+
+    _recall_pct = float(rec["pct_seen_in_gossip"].iloc[0])
+    if _recall_pct < MIN_SENTRY_RECALL_PCT:
+        sys.exit(
+            f"\nREFUSED: sentry recall {_recall_pct:.3f}% is below the "
+            f"{MIN_SENTRY_RECALL_PCT}% floor.\n"
+            "Absence from gossip cannot be read as validator silence at this "
+            "coverage level -- the 'silent' bucket would be measuring the sentry\n"
+            "fleet, not the validators. No classification written. Either fetch "
+            "denser sentry partitions for this window, or report the recall\n"
+            "failure itself as the finding and omit the behavioural split for "
+            "this event."
+        )
 
     by_bucket = con.sql(
         """

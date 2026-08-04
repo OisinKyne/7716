@@ -19,32 +19,42 @@ import os
 
 import duckdb
 
+import events
+
 from eip7716_historical import (
     ChainContext,
     EVENT_HI,
     EVENT_LO,
     EventData,
-    FUSAKA_EPOCH,
     days_to_recoup,
     run_mechanisms,
     validator_costs,
 )
 
-SEED_WINDOWS = {
-    "pre-Fusaka, 192 epochs (headline)": (411200, FUSAKA_EPOCH - 1),
-    "pre-Fusaka, last 48 epochs": (FUSAKA_EPOCH - 48, FUSAKA_EPOCH - 1),
-    "post-Fusaka, immediately pre-event": (FUSAKA_EPOCH, EVENT_LO - 1),
-    "full pull range before the event": (411200, EVENT_LO - 1),
-}
-EL_BONUSES = {
-    "0.077 — measured, 21 days around the event": 0.077,
-    "0.074 — lower bound (locally-built blocks earn nothing)": 0.0737,
-    "0.081 — upper bound (locally-built earn like relayed)": 0.0808,
-    "0.21 — the repo's July-2026 default": 0.21,
-}
+def seed_windows(spec):
+    """Alternative baseline windows for this event, headline first."""
+    out = {f"{spec.seed_label}, {spec.seed_hi - spec.seed_lo + 1} epochs (headline)":
+           (spec.seed_lo, spec.seed_hi)}
+    if spec.seed_hi - spec.seed_lo >= 48:
+        out[f"{spec.seed_label}, last 48 epochs"] = (spec.seed_hi - 47, spec.seed_hi)
+    if spec.marker_epoch is not None and spec.marker_epoch < spec.event_lo:
+        out[f"post-{spec.marker_label}, immediately pre-event"] = (spec.marker_epoch, spec.event_lo - 1)
+    out["full pull range before the event"] = (spec.pull_lo, spec.event_lo - 1)
+    return out
 
 
-def headline(data, df, ctx, lo=EVENT_LO, hi=EVENT_HI, exclude_uncollected=None):
+def el_bonuses(spec):
+    """EL-income sensitivity around this event's measured share."""
+    m = spec.el_bonus
+    return {
+        f"{m:.3f} — measured, 21 days around the event": m,
+        f"{m * 0.957:.3f} — lower bound (locally-built blocks earn nothing)": m * 0.957,
+        f"{m * 1.049:.3f} — upper bound (locally-built earn like relayed)": m * 1.049,
+        "0.21 — the repo's July-2026 default": 0.21,
+    }
+
+
+def headline(data, df, ctx, lo, hi, exclude_uncollected=None):
     costs = validator_costs(data, df, ctx, lo, hi)
     if exclude_uncollected is not None:
         costs = costs[~costs.validator.isin(exclude_uncollected)]
@@ -59,14 +69,22 @@ def headline(data, df, ctx, lo=EVENT_LO, hi=EVENT_HI, exclude_uncollected=None):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--derived-dir", default="data/derived")
-    ap.add_argument("--results-dir", default="results")
+    events.add_event_arg(ap)
+    ap.add_argument("--derived-dir", default=None)
+    ap.add_argument("--results-dir", default=None)
     args = ap.parse_args()
+
+    spec = events.get(args.event)
+    args.derived_dir = args.derived_dir or spec.derived_dir
+    args.results_dir = args.results_dir or spec.results_dir
+    EV_LO, EV_HI = spec.event_lo, spec.event_hi
+    SEED_WINDOWS = seed_windows(spec)
+    EL_BONUSES = el_bonuses(spec)
 
     data = EventData.load(args.derived_dir)
     base_df = data.arrays()
     tab = int(
-        base_df.loc[base_df.epoch.between(EVENT_LO, EVENT_HI), "total_active_balance"].median()
+        base_df.loc[base_df.epoch.between(EV_LO, EV_HI), "total_active_balance"].median()
     )
     out = {}
 
@@ -77,8 +95,8 @@ def main():
     for name, (lo, hi) in SEED_WINDOWS.items():
         df, seeds = run_mechanisms(base_df, lo, hi)
         ctx = ChainContext(tab)
-        h = headline(data, df, ctx)
-        ev = df[df.epoch.between(EVENT_LO, EVENT_HI)]
+        h = headline(data, df, ctx, EV_LO, EV_HI)
+        ev = df[df.epoch.between(EV_LO, EV_HI)]
         print(f"{name:<40}{f'{lo}-{hi}':>16}{seeds['ema_seed_gwei'] / 1e9:>18,.0f}"
               f"{seeds['seed_offline_share'] * 100:>9.3f}%{int(ev.factor_revised.max()):>13}"
               f"{h['revised']:>15.2f}d")
@@ -90,14 +108,14 @@ def main():
             "days_to_recoup_revised": h["revised"],
         }
 
-    df, _ = run_mechanisms(base_df)  # back to the headline seeding
+    df, _ = run_mechanisms(base_df, spec.seed_lo, spec.seed_hi)  # back to the headline seeding
 
     print("\n=== 2. execution-layer share of normal income (denominator only) ===")
     print(f"{'assumption':<56}{'status quo':>13}{'revised':>11}")
     out["el_bonus"] = {}
     for name, el in EL_BONUSES.items():
         ctx = ChainContext(tab, el_apr_bonus=el)
-        h = headline(data, df, ctx)
+        h = headline(data, df, ctx, EV_LO, EV_HI)
         print(f"{name:<56}{h['status_quo'] * 24:>11.2f}h{h['revised']:>10.2f}d")
         out["el_bonus"][name] = h
 
@@ -105,7 +123,7 @@ def main():
     ctx = ChainContext(tab)
     cls_path = os.path.join(args.results_dir, "offline_classified.parquet")
     out["uncollected"] = {}
-    base = headline(data, df, ctx)
+    base = headline(data, df, ctx, EV_LO, EV_HI)
     print(f"{'as measured (chain definition, headline)':<56}"
           f"{base['status_quo'] * 24:>11.2f}h{base['revised']:>10.2f}d  n={base['n']:,}")
     if os.path.exists(cls_path):
@@ -119,7 +137,7 @@ def main():
             HAVING bool_and(bucket = 'uncollected')
             """
         ).df().validator.to_numpy()
-        alt = headline(data, df, ctx, exclude_uncollected=set(vs.tolist()))
+        alt = headline(data, df, ctx, EV_LO, EV_HI, exclude_uncollected=set(vs.tolist()))
         print(f"{'excluding validators that were only ever uncollected':<56}"
               f"{alt['status_quo'] * 24:>11.2f}h{alt['revised']:>10.2f}d  n={alt['n']:,}")
         out["uncollected"] = {"headline": base, "excluded": alt,
@@ -132,7 +150,7 @@ def main():
     print("implementation scaled source+target (40/64), the revision scales target")
     print("only (26/64). The headline uses the wider, more generous reading.")
     ctx = ChainContext(tab)
-    costs = validator_costs(data, df, ctx, EVENT_LO, EVENT_HI)
+    costs = validator_costs(data, df, ctx, EV_LO, EV_HI)
     per32 = 32_000_000_000
     br = costs.base_reward.to_numpy()
     n = costs.offline_epochs.to_numpy()
