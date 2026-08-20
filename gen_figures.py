@@ -25,8 +25,8 @@ FULL = net.full_reward_per_epoch_gwei()
 M0 = net.baseline_miss
 USD = net.eth_price_usd
 EP_H = EPOCHS_PER_DAY / 24
-CAP, HL_D = 128, 12.6
-SLOPE = 3 * (CAP - 1)   # 381: cap binds at exactly 1/3
+CAP, HL_D = 256, 12.6
+SLOPE = 3 * (CAP - 1)   # 765: cap binds at exactly 1/3
 ALPHA = 1 - 0.5 ** (1 / (HL_D * EPOCHS_PER_DAY * 32))
 
 BLUE, GREEN, GRAY = "#2a78d6", "#008300", "#52514e"
@@ -128,7 +128,7 @@ def fig1():
             label="…with staggered recovery (6h half-life)")
     ax.plot(x, old, color=GREEN, lw=2, label="EIP-7716 as specced (4096 / 4)")
     ax.set_yscale("log")
-    ax.set_ylim(0.55, 110)
+    ax.set_ylim(0.55, 300)
     ax.set_yticks([1, 4, 16, 64])
     ax.set_yticklabels(["1x", "4x", "16x", "64x"])
     ax.axvspan(0, 72, color=GRID, alpha=0.35, zorder=0)
@@ -136,7 +136,7 @@ def fig1():
     ax.annotate("renormalises to 1x within ~2 minutes\n(and gives a discount window at recovery)",
                 xy=(1.2, 1.06), xytext=(8, 2.6), color=GREEN, fontsize=9.5, ha="left",
                 arrowprops=dict(arrowstyle="-", color=GREEN, lw=1))
-    ax.annotate("opens at 39x, proportional to the event size;\nthe EMA absorbs the anomaly over ~2 weeks",
+    ax.annotate(f"opens at {min(1 + SLOPE * 0.10, CAP):.0f}x, proportional to the event size;\nthe EMA absorbs the anomaly over ~2 weeks",
                 xy=(20, 36), xytext=(22, 4.7), color=BLUE, fontsize=9.5,
                 arrowprops=dict(arrowstyle="-", color=BLUE, lw=1))
     ax.annotate("collapses to 1x when\nthe cohort recovers", xy=(72.5, 5), xytext=(74, 11),
@@ -197,14 +197,15 @@ def fig3():
             color=GRAY, fontsize=9.5, va="center")
     ax.text(2, CAP + 3, f"MAX_PENALTY_FACTOR = {CAP}: slope = 3·(cap−1) pins saturation at exactly one third",
             color=MUTED, fontsize=9.5)
-    for s, lbl in [(0.01, "1% → 5x"), (0.05, "5% → 20x"), (0.10, "10% → 39x"), (0.20, "20% → 77x")]:
+    for s in (0.01, 0.05, 0.10, 0.20):
         y = min(1 + SLOPE * s, CAP)
+        lbl = f"{s:.0%} → {y:.0f}x"
         ax.plot([s * 100], [y], "o", color=BLUE, ms=7, mec=SURF, mew=1.5)
-        ax.annotate(lbl, xy=(s * 100, y), xytext=(s * 100 + 1.2, y - 9),
+        ax.annotate(lbl, xy=(s * 100, y), xytext=(s * 100 + 1.2, y - 18),
                     color=INK, fontsize=10)
     ax.set_xlabel("stake newly offline in the same slot (%)")
     ax.set_ylabel("onset penalty factor")
-    ax.set_ylim(0, 144)
+    ax.set_ylim(0, 288)
     ax.set_title("Onset severity scales with the size of the correlated failure")
     fig.tight_layout()
     fig.savefig(f"{FIGDIR}/f3_onset_vs_size.png")
@@ -280,10 +281,10 @@ def fig6():
                     label="inactivity leak (unchanged)", lw=0)
     ax.plot(spikes * 100, now, color=GRAY, lw=1.6, ls=(0, (4, 3)), label="status quo total")
     ax.axvline(100 / 3, color=GRAY, lw=1, alpha=0.6)
-    ax.text(100 / 3 - 0.8, 255, "finality\nthreshold", color=MUTED, fontsize=9.5, ha="right")
-    ax.text(4, 195, "this proposal prices the 1–33% band\nthe protocol currently ignores",
+    ax.text(100 / 3 - 0.8, 610, "finality\nthreshold", color=MUTED, fontsize=9.5, ha="right")
+    ax.text(4, 560, "this proposal prices the 1–33% band\nthe protocol currently ignores",
             color=INK, fontsize=10)
-    ax.set_ylim(0, 340)
+    ax.set_ylim(0, 660)
     ax.set_xlabel("stake offline for 24 hours (%)")
     ax.set_ylabel("loss per fully-offline 32 ETH validator (USD)")
     ax.set_title("Layering with the inactivity leak: 24-hour outage, by event size")
@@ -308,13 +309,13 @@ def fig7():
     ax.plot(gaps, onset2, color=BLUE, lw=2, label="Revised mechanism")
     fresh = 1 + SLOPE * 0.10
     ax.axhline(fresh, color=AXIS, lw=1)
-    ax.text(1, fresh + 1.2, "fresh-event onset: 39x", color=MUTED, fontsize=10)
+    ax.text(1, fresh + 1.2, f"fresh-event onset: {fresh:.0f}x", color=MUTED, fontsize=10)
     ax.annotate("a counter-based design at equivalent deterrence\n(PAF ≈ 2²⁷) stays fully disarmed for ~8 months",
                 xy=(41, 5.5), color=GREEN, fontsize=9.5, ha="center")
     ax.plot([0, 60], [1, 1], color=GREEN, lw=2)
     ax.axvline(HL_D, color=AXIS, lw=1)
     ax.text(HL_D + 0.8, 3, f"EMA half-life ({HL_D:.0f} days)", color=MUTED, fontsize=9.5, rotation=90, va="bottom")
-    ax.set_ylim(0, 48)
+    ax.set_ylim(0, 92)
     ax.set_xlim(0, 60)
     ax.set_xlabel("days since a major crisis (40% of stake down for 3 days)")
     ax.set_ylabel("onset factor of a new 10% event")

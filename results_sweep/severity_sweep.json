@@ -1,0 +1,322 @@
+{
+ "may2023": {
+  "event": "may2023",
+  "dtr_sq_days": 0.02432294356281013,
+  "variants": {
+   "A: 381/128 (current)": {
+    "mean_dtr": 0.9691226395972283,
+    "p95_dtr": 1.7296905095329724,
+    "vs_sq": 39.843970245403206,
+    "extra_burn_eth": 2927.7236844679687,
+    "mean_principal_pct": 0.01691379457806555,
+    "archetype_eth_per_1pct_stake": 87.05913291828809,
+    "archetype_usd_per_1pct_stake": 160188.80456965006,
+    "bystander_dtr": 0.21929728328747264
+   },
+   "A: 573/192": {
+    "mean_dtr": 1.4457338761517735,
+    "p95_dtr": 2.5792209566175166,
+    "vs_sq": 59.439100058691324,
+    "extra_burn_eth": 4404.634894948437,
+    "mean_principal_pct": 0.025231941548640606,
+    "archetype_eth_per_1pct_stake": 118.38207565612403,
+    "archetype_usd_per_1pct_stake": 217823.01920726823,
+    "bystander_dtr": 0.3277450364312125
+   },
+   "A: 765/256": {
+    "mean_dtr": 1.9223980043845386,
+    "p95_dtr": 3.42939145776378,
+    "vs_sq": 79.03640443107766,
+    "extra_burn_eth": 5881.709928371875,
+    "mean_principal_pct": 0.03355101162114698,
+    "archetype_eth_per_1pct_stake": 149.7585936590449,
+    "archetype_usd_per_1pct_stake": 275555.8123326426,
+    "bystander_dtr": 0.4361986140781345
+   },
+   "A: 1149/384": {
+    "mean_dtr": 2.87563539070313,
+    "p95_dtr": 5.12883563762498,
+    "vs_sq": 118.22727719107102,
+    "extra_burn_eth": 8835.578512475,
+    "mean_principal_pct": 0.050187565837882135,
+    "archetype_eth_per_1pct_stake": 212.40229238920313,
+    "archetype_usd_per_1pct_stake": 390820.2179961337,
+    "bystander_dtr": 0.6531030898734385
+   },
+   "A: 1533/512": {
+    "mean_dtr": 3.828984675909957,
+    "p95_dtr": 6.828361167266798,
+    "vs_sq": 157.42275049984036,
+    "extra_burn_eth": 11789.793722677343,
+    "mean_principal_pct": 0.06682607299094526,
+    "archetype_eth_per_1pct_stake": 275.1706356136406,
+    "archetype_usd_per_1pct_stake": 506313.9695290988,
+    "bystander_dtr": 0.870012425098298
+   },
+   "B: 762/128": {
+    "mean_dtr": 1.0166403216510367,
+    "p95_dtr": 1.9083353722474006,
+    "vs_sq": 41.79758584834622,
+    "extra_burn_eth": 3074.958042599219,
+    "mean_principal_pct": 0.017743105833675027,
+    "archetype_eth_per_1pct_stake": 101.89292111028125,
+    "archetype_usd_per_1pct_stake": 187482.9748429175,
+    "bystander_dtr": 0.2213713968182981
+   },
+   "B: 1143/128": {
+    "mean_dtr": 1.0330387465343178,
+    "p95_dtr": 1.9966960390367448,
+    "vs_sq": 42.471781586248376,
+    "extra_burn_eth": 3125.764365465625,
+    "mean_principal_pct": 0.018029302418655156,
+    "archetype_eth_per_1pct_stake": 111.43259841367481,
+    "archetype_usd_per_1pct_stake": 205035.98108116165,
+    "bystander_dtr": 0.22217193106852498
+   },
+   "B: 1524/128": {
+    "mean_dtr": 1.0374126689291627,
+    "p95_dtr": 2.0039507062533652,
+    "vs_sq": 42.65160860363013,
+    "extra_burn_eth": 3139.3113897945314,
+    "mean_principal_pct": 0.018105639119361635,
+    "archetype_eth_per_1pct_stake": 118.2202564881123,
+    "archetype_usd_per_1pct_stake": 217525.27193812662,
+    "bystander_dtr": 0.22260356876340884
+   }
+  }
+ },
+ "besu": {
+  "event": "besu",
+  "dtr_sq_days": 0.05300676965087241,
+  "variants": {
+   "A: 381/128 (current)": {
+    "mean_dtr": 0.11463612511493577,
+    "p95_dtr": 1.0664591298834571,
+    "vs_sq": 2.162669520704306,
+    "extra_burn_eth": 28.5986673245,
+    "mean_principal_pct": 0.0012365225635522547,
+    "archetype_eth_per_1pct_stake": 35.58563308341563,
+    "archetype_usd_per_1pct_stake": 80067.67443768517
+   },
+   "A: 573/192": {
+    "mean_dtr": 0.1494058569772541,
+    "p95_dtr": 1.3455950112207662,
+    "vs_sq": 2.8186184134840047,
+    "extra_burn_eth": 44.73291708275,
+    "mean_principal_pct": 0.001611566276285151,
+    "archetype_eth_per_1pct_stake": 44.87488907598048,
+    "archetype_usd_per_1pct_stake": 100968.50042095607
+   },
+   "A: 765/256": {
+    "mean_dtr": 0.1842259051698784,
+    "p95_dtr": 1.6237448357903137,
+    "vs_sq": 3.4755165497402905,
+    "extra_burn_eth": 60.89056615525,
+    "mean_principal_pct": 0.0019871527261148933,
+    "archetype_eth_per_1pct_stake": 54.11583541628085,
+    "archetype_usd_per_1pct_stake": 121760.62968663192
+   },
+   "A: 1149/384": {
+    "mean_dtr": 0.2536211371705429,
+    "p95_dtr": 2.175974971000755,
+    "vs_sq": 4.784693329569248,
+    "extra_burn_eth": 93.092183015,
+    "mean_principal_pct": 0.002735684396090061,
+    "archetype_eth_per_1pct_stake": 72.58392533909179,
+    "archetype_usd_per_1pct_stake": 163313.83201295653
+   },
+   "A: 1533/512": {
+    "mean_dtr": 0.32321353885474824,
+    "p95_dtr": 2.729017472295695,
+    "vs_sq": 6.09758981699102,
+    "extra_burn_eth": 125.38533164625,
+    "mean_principal_pct": 0.003486342836856742,
+    "archetype_eth_per_1pct_stake": 91.09894463838822,
+    "archetype_usd_per_1pct_stake": 204972.6254363735
+   },
+   "B: 762/128": {
+    "mean_dtr": 0.183675931570827,
+    "p95_dtr": 1.6191044738358384,
+    "vs_sq": 3.4651410146402686,
+    "extra_burn_eth": 60.6353390825,
+    "mean_principal_pct": 0.0019812204358887254,
+    "archetype_eth_per_1pct_stake": 53.98332894149836,
+    "archetype_usd_per_1pct_stake": 121462.49011837131
+   },
+   "B: 1143/128": {
+    "mean_dtr": 0.25228611721522254,
+    "p95_dtr": 2.1674834003757666,
+    "vs_sq": 4.759507490777082,
+    "extra_burn_eth": 92.472639402,
+    "mean_principal_pct": 0.0027212842033419978,
+    "archetype_eth_per_1pct_stake": 72.30648990751592,
+    "archetype_usd_per_1pct_stake": 162689.60229191082
+   },
+   "B: 1524/128": {
+    "mean_dtr": 0.3194441624066362,
+    "p95_dtr": 2.716092540127048,
+    "vs_sq": 6.0264785896338555,
+    "extra_burn_eth": 123.63579088575,
+    "mean_principal_pct": 0.003445684457799181,
+    "archetype_eth_per_1pct_stake": 90.61032701262772,
+    "archetype_usd_per_1pct_stake": 203873.23577841237
+   }
+  }
+ },
+ "nethermind": {
+  "event": "nethermind",
+  "dtr_sq_days": 0.06237379767886035,
+  "variants": {
+   "A: 381/128 (current)": {
+    "mean_dtr": 0.4649876991330241,
+    "p95_dtr": 1.1136796572457188,
+    "vs_sq": 7.454856308847411,
+    "extra_burn_eth": 181.171893703125,
+    "mean_principal_pct": 0.004923783807850787,
+    "archetype_eth_per_1pct_stake": 34.22226478382813,
+    "archetype_usd_per_1pct_stake": 83844.54872037892
+   },
+   "A: 573/192": {
+    "mean_dtr": 0.6731863723835758,
+    "p95_dtr": 1.5985180813271704,
+    "vs_sq": 10.79277513050534,
+    "extra_burn_eth": 274.85893454296877,
+    "mean_principal_pct": 0.007128412571317957,
+    "archetype_eth_per_1pct_stake": 48.94989256133789,
+    "archetype_usd_per_1pct_stake": 119927.23677527784
+   },
+   "A: 765/256": {
+    "mean_dtr": 0.8806747831136265,
+    "p95_dtr": 2.0812044193447536,
+    "vs_sq": 14.119306758390689,
+    "extra_burn_eth": 368.22637419140625,
+    "mean_principal_pct": 0.009325520320564135,
+    "archetype_eth_per_1pct_stake": 63.625084298789055,
+    "archetype_usd_per_1pct_stake": 155881.4565320332
+   },
+   "A: 1149/384": {
+    "mean_dtr": 1.2959739105771142,
+    "p95_dtr": 3.0472785948287204,
+    "vs_sq": 20.777537344280447,
+    "extra_burn_eth": 555.1062967734375,
+    "mean_principal_pct": 0.013723148737470473,
+    "archetype_eth_per_1pct_stake": 92.99340641897463,
+    "archetype_usd_per_1pct_stake": 227833.84572648784
+   },
+   "A: 1533/512": {
+    "mean_dtr": 1.7112908669047493,
+    "p95_dtr": 4.013364667242054,
+    "vs_sq": 27.436053769173295,
+    "extra_burn_eth": 741.9942106992188,
+    "mean_principal_pct": 0.018120965945333568,
+    "archetype_eth_per_1pct_stake": 122.37276770548827,
+    "archetype_usd_per_1pct_stake": 299813.28087844624
+   },
+   "B: 762/128": {
+    "mean_dtr": 0.8765373059836566,
+    "p95_dtr": 2.073285677608711,
+    "vs_sq": 14.05297318108837,
+    "extra_burn_eth": 366.3644992617188,
+    "mean_principal_pct": 0.009281708316642562,
+    "archetype_eth_per_1pct_stake": 63.36704378586915,
+    "archetype_usd_per_1pct_stake": 155249.2572753794
+   },
+   "B: 1143/128": {
+    "mean_dtr": 1.279401244801114,
+    "p95_dtr": 3.0228208701717927,
+    "vs_sq": 20.511838182248876,
+    "extra_burn_eth": 547.648174125,
+    "mean_principal_pct": 0.013547659743776795,
+    "archetype_eth_per_1pct_stake": 92.27310081606446,
+    "archetype_usd_per_1pct_stake": 226069.09699935792
+   },
+   "B: 1524/128": {
+    "mean_dtr": 1.665248800090565,
+    "p95_dtr": 3.9457462520140765,
+    "vs_sq": 26.697890172798456,
+    "extra_burn_eth": 721.274027296875,
+    "mean_principal_pct": 0.017633423622208995,
+    "archetype_eth_per_1pct_stake": 120.47817078442384,
+    "archetype_usd_per_1pct_stake": 295171.5184218384
+   }
+  }
+ },
+ "prysm": {
+  "event": "prysm",
+  "dtr_sq_days": 0.10546366018417615,
+  "variants": {
+   "A: 381/128 (current)": {
+    "mean_dtr": 2.3980907084713157,
+    "p95_dtr": 4.119801362682383,
+    "vs_sq": 22.738549982841644,
+    "extra_burn_eth": 2138.918247048375,
+    "mean_principal_pct": 0.01969987751853756,
+    "archetype_eth_per_1pct_stake": 122.31232490139918,
+    "archetype_usd_per_1pct_stake": 373052.5909492675
+   },
+   "A: 573/192": {
+    "mean_dtr": 3.561876763038768,
+    "p95_dtr": 6.1030624789518555,
+    "vs_sq": 33.77349844314615,
+    "extra_burn_eth": 3224.6445455749686,
+    "mean_principal_pct": 0.029260167565854228,
+    "archetype_eth_per_1pct_stake": 180.72972919152028,
+    "archetype_usd_per_1pct_stake": 551225.6740341368
+   },
+   "A: 765/256": {
+    "mean_dtr": 4.725880352826187,
+    "p95_dtr": 8.084647127667424,
+    "vs_sq": 44.81050955915203,
+    "extra_burn_eth": 4310.5807693430625,
+    "mean_principal_pct": 0.03882224462530273,
+    "archetype_eth_per_1pct_stake": 239.1502003340295,
+    "archetype_usd_per_1pct_stake": 729408.11101879
+   },
+   "A: 1149/384": {
+    "mean_dtr": 7.0538559898196205,
+    "p95_dtr": 12.048727113345267,
+    "vs_sq": 66.8842327063288,
+    "extra_burn_eth": 6482.398042891875,
+    "mean_principal_pct": 0.057946139627650044,
+    "archetype_eth_per_1pct_stake": 355.9512735380017,
+    "archetype_usd_per_1pct_stake": 1085651.3842909052
+   },
+   "A: 1533/512": {
+    "mean_dtr": 9.381832131535141,
+    "p95_dtr": 16.01324562730672,
+    "vs_sq": 88.95796063924963,
+    "extra_burn_eth": 8654.229526123594,
+    "mean_principal_pct": 0.07707003877619717,
+    "archetype_eth_per_1pct_stake": 472.7814818396616,
+    "archetype_usd_per_1pct_stake": 1441983.5196109677
+   },
+   "B: 762/128": {
+    "mean_dtr": 3.8309748350676873,
+    "p95_dtr": 6.822267059577049,
+    "vs_sq": 36.325069966066756,
+    "extra_burn_eth": 3469.358351734031,
+    "mean_principal_pct": 0.031470759117173654,
+    "archetype_eth_per_1pct_stake": 202.14249256581812,
+    "archetype_usd_per_1pct_stake": 616534.6023257453
+   },
+   "B: 1143/128": {
+    "mean_dtr": 4.137547125229581,
+    "p95_dtr": 7.787155943009098,
+    "vs_sq": 39.231969742032355,
+    "extra_burn_eth": 3748.253360554219,
+    "mean_principal_pct": 0.03398919453141065,
+    "archetype_eth_per_1pct_stake": 230.79302757622924,
+    "archetype_usd_per_1pct_stake": 703918.7341074991
+   },
+   "B: 1524/128": {
+    "mean_dtr": 4.251694154995154,
+    "p95_dtr": 8.290852636797723,
+    "vs_sq": 40.31430492332829,
+    "extra_burn_eth": 3851.5994576219064,
+    "mean_principal_pct": 0.0349268915491019,
+    "archetype_eth_per_1pct_stake": 245.43264745122366,
+    "archetype_usd_per_1pct_stake": 748569.5747262322
+   }
+  }
+ }
+}

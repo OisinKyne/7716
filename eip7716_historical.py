@@ -39,8 +39,12 @@ import numpy as np
 from eip7716_model import EPOCHS_PER_DAY, SLOTS_PER_EPOCH
 
 # ---------------------------------------------------------------- spec constants
-MAX_PENALTY_FACTOR = 128
-PENALTY_SLOPE = 381  # 3 * (MAX_PENALTY_FACTOR - 1)
+# Adopted EIP constants (see SEVERITY.md). The committed results*/ record was
+# generated at the initial calibration (--penalty-slope 381
+# --max-penalty-factor 128), which run_all.sh pins; below the cap the two
+# differ by exactly 2x.
+MAX_PENALTY_FACTOR = 256
+PENALTY_SLOPE = 765  # 3 * (MAX_PENALTY_FACTOR - 1)
 OFFLINE_BALANCE_SMOOTHING_FACTOR = 2**17
 
 PAF_ORIGINAL = 4096
@@ -497,6 +501,7 @@ def dv_archetype(df, ctx: ChainContext, epoch_lo, epoch_hi, survival=(0.0, 0.5, 
 
 
 def main():
+    global PENALTY_SLOPE, MAX_PENALTY_FACTOR
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--derived-dir", default="data/derived")
     ap.add_argument("--out-dir", default="results")
@@ -508,7 +513,12 @@ def main():
     ap.add_argument("--seed-hi", type=int, default=SEED_HI)
     ap.add_argument("--el-bonus", type=float, default=0.077)
     ap.add_argument("--eth-price", type=float, default=3050.0)
+    ap.add_argument("--penalty-slope", type=int, default=PENALTY_SLOPE)
+    ap.add_argument("--max-penalty-factor", type=int, default=MAX_PENALTY_FACTOR)
     args = ap.parse_args()
+
+    PENALTY_SLOPE = args.penalty_slope
+    MAX_PENALTY_FACTOR = args.max_penalty_factor
 
     os.makedirs(args.out_dir, exist_ok=True)
     data = EventData.load(args.derived_dir)

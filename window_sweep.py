@@ -31,6 +31,11 @@ and, synthetically on each event's own baseline:
   sustained       cost of a 10%-of-stake cohort staying down 7 days
   re-arm          onset factor a repeat event would meet +3/+7/+14 days out
 
+The committed results_sweep/sweep_*.json were generated at the initial
+381/128 calibration (imported from eip7716_historical at the time); the
+ratios and conclusions are calibration-independent, absolute days double
+at the adopted 765/256 constants.
+
 Usage: .venv/bin/python window_sweep.py --event prysm [--out results_sweep]
 """
 

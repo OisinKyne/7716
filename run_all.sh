@@ -55,7 +55,9 @@ $PY attribution.py
 
 echo
 echo "==> mechanisms"
-$PY eip7716_historical.py > /dev/null
+# pinned to the initial calibration so the committed results*/ record
+# reproduces bit-for-bit; the adopted EIP constants are 765/256 (SEVERITY.md)
+$PY eip7716_historical.py --penalty-slope 381 --max-penalty-factor 128 > /dev/null
 
 echo
 echo "==> sensitivity"

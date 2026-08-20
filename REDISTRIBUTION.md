@@ -22,11 +22,11 @@ and post-Fusaka — inside the status quo's error bar on all four, including the
 mechanism's own motivating events. Whatever a correlated cohort pays extra
 must come from somewhere; if the mechanism gives it back, it isn't a
 deterrent. A longer-horizon budget (repay via sub-1x factors over weeks) fails
-differently: the December 2025 event's ~2,290 ETH of extra penalties against a
-~260 ETH/day baseline penalty flow means zeroing *all* attestation penalties
-for ~9 days — a free-miss window, advertised on-chain, opening exactly when
-the network is recovering, and paid to whoever misses next rather than to the
-cohort that was charged.
+differently: the December 2025 event's ~4,600 ETH of extra penalties (at the
+adopted 765/256 constants) against a ~260 ETH/day baseline penalty flow means
+zeroing *all* attestation penalties for over two weeks — a free-miss window,
+advertised on-chain, opening exactly when the network is recovering, and paid
+to whoever misses next rather than to the cohort that was charged.
 
 ## 2. Redistribution to online validators funds discouragement attacks
 
@@ -35,11 +35,11 @@ discouragement-attack literature warns about
 ([Buterin 2018](https://eips.ethereum.org/assets/eip-2982/ef-Discouragement-Attacks.pdf)):
 griefing becomes profitable when victims' losses recycle into survivors'
 income; burning removes the recovery channel entirely. The pots are not
-subtle: December 2025 would have created a **2,290 ETH pool paid to online
+subtle: December 2025 would have created a **~4,600 ETH pool paid to online
 validators** — a 30% staker that *caused* a competitor outage (infrastructure
 DoS, eclipse, or the proposer-censorship path
 [Elowsson flagged](https://ethresear.ch/t/practical-endgame-on-issuance-policy/20747))
-would collect ~690 ETH of it. Under burn, zero. The revision as drafted
+would collect ~1,400 ETH of it. Under burn, zero. The revision as drafted
 actually *improves* on today here: an attacker who takes itself offline to
 hurt others pays the scaled factor on its own stake while online victims lose
 only participation-scaled rewards — self-inflicted discouragement attacks get
@@ -50,22 +50,22 @@ state-dependent.
 
 ## 3. The burn is quantitatively not issuance policy
 
-Network-wide extra penalties vs the status quo, measured on the real events
-(event + recovery tail):
+Network-wide extra penalties vs the status quo, replayed on the real events at
+the adopted 765/256 constants (event + recovery tail):
 
 | Event | extra burn | % of annual issuance (~940k ETH) |
 |---|---|---|
-| May 2023 finality incidents (both) | 2,988 ETH | 0.32% |
-| Besu halt, 2024-01-06 | 64 ETH | 0.007% |
-| Nethermind bug, 2024-01-21 | 221 ETH | 0.023% |
-| Prysm post-Fusaka, 2025-12-04 | 2,290 ETH | 0.24% |
+| May 2023 finality incidents (both) | 6,005 ETH | 0.64% |
+| Besu halt, 2024-01-06 | 136 ETH | 0.014% |
+| Nethermind bug, 2024-01-21 | 454 ETH | 0.048% |
+| Prysm post-Fusaka, 2025-12-04 | 4,625 ETH | 0.49% |
 
-Expected value at historical event rates: ~0.05–0.15% of issuance per year,
+Expected value at historical event rates: ~0.1–0.3% of issuance per year,
 conditional entirely on correlated failures happening. In steady state the
 mechanism burns nothing — at the mainnet noise floor the factor is measurably
-1 on every slot. EIP-1559 burns more than the December event in a normal day,
-and mass-slashing events (which nobody frames as issuance policy) burn
-comparable amounts.
+1 on every slot. EIP-1559 burns amounts of this order in days of ordinary fee
+activity, and mass-slashing events (which nobody frames as issuance policy)
+burn comparable amounts.
 
 Precedent runs one way: every penalty in the current spec burns — attestation
 penalties, sync-committee penalties, the inactivity leak, slashing including

@@ -3,6 +3,17 @@
 Start here. `README.md` covers the synthetic model; this covers the historical
 backtest added on the `historical-backtest` branch.
 
+> **Calibration note.** Every number in this document and in `results*/` was
+> computed at the initial calibration (slope 381, cap 128) and is kept as the
+> measured record — `run_all.sh` pins those constants so it reproduces
+> bit-for-bit. The EIP has since adopted **765/256** after the severity
+> analysis in [`SEVERITY.md`](SEVERITY.md): below the cap every revised-line
+> figure doubles exactly (the drafted-mechanism and status-quo lines are
+> unaffected), and the adopted-constants replays live in
+> `results_sweep/severity_sweep.json`. A fourth event, the May 2023 finality
+> incidents, was added with the window analysis — see
+> [`WINDOW_TUNING.md`](WINDOW_TUNING.md) and `results_may2023/`.
+
 ---
 
 ## The result

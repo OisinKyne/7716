@@ -5,6 +5,12 @@ smoothing window, and is there a skew of the update rule that keeps the
 penalty meaningful for everyone caught in a correlated outage without
 hammering operators who take 24 hours to apply an 8-hour patch?
 
+> **Calibration note.** This analysis was run at the initial 381/128
+> calibration; the EIP has since adopted 765/256 ([`SEVERITY.md`](SEVERITY.md)).
+> Every ratio, curve shape, and conclusion here is calibration-independent;
+> absolute days-to-recoup double below the cap (e.g. the sustained 10%·7d
+> deterrent at 2^17 is ~158 days of income at the adopted constants).
+
 Method: the historical backtest harness ([BACKTEST.md](BACKTEST.md)), extended
 with [`window_sweep.py`](window_sweep.py), which replays every catalogued real
 event under 12 update-rule variants — symmetric half-lives 2^14–2^18 (1.6–25.2

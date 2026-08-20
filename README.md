@@ -10,7 +10,7 @@ offline           = balance in a slot's committees missing BOTH
 committee_balance = total_active_balance // 32
 factor            = min(1 + PENALTY_SLOPE * max(0, offline − smoothed_offline_balance)
                           // committee_balance,
-                        MAX_PENALTY_FACTOR)    # cap 128, slope = 3·(cap−1) = 381
+                        MAX_PENALTY_FACTOR)    # cap 256, slope = 3·(cap−1) = 765
 smoothed_offline_balance += (offline − smoothed_offline_balance)
                           // OFFLINE_BALANCE_SMOOTHING_FACTOR    # 2**17, ~12.6d half-life
 ```
@@ -38,32 +38,32 @@ Per 32 eth validator, July 2026 parameters (~40.7M eth staked, eth ≈ $1,840, ~
 | Event | Today | Revised | Payback |
 | --- | --- | --- | --- |
 | uncorrelated failure | $6.17 | $6.17 (1.0x) | 1.2 d |
-| 10% correlated | $6.17 | $69 (11.3x) | ~2 wk |
-| 20% correlated | $6.17 | $133 (21.5x) | ~3.7 wk |
-| 40% down 3 days (finality lost) | $819 | $1,469 (1.8x) | ~9.5 mo ≈ 2.5% of principal |
+| 10% correlated | $6.17 | $133 (21.6x) | ~3.7 wk |
+| 20% correlated | $6.17 | $260 (42.2x) | ~7 wk |
+| 40% down 3 days (finality lost) | $819 | $2,124 (2.6x) | ~14 mo ≈ 3.6% of principal |
+
+In the 40% row the leak dominates the *today* column and remains unchanged: of the $2,124, $801 is the pre-existing inactivity leak and $1,324 is this proposal — the outsized total above one third comes mostly from mechanisms that already exist. At the operator scale the 10%/24h row is ~900 ETH per 1% of total stake run, on the order of 9,000 ETH for a 10%-of-stake operator whose fleet fails together for a day. Constants were chosen from a severity sweep over the real events below — caps 128–512 and slope-decoupled variants — documented in [`SEVERITY.md`](SEVERITY.md).
 
 Under the *originally drafted* mechanism every one of these events costs within a few percent of $6.17, at any cap — the update rule has a fixed excess-penalty budget, `Σ(factor−1) = PAF·Δmiss/32`, independent of `MAX_PENALTY_FACTOR` and outage duration. That invariant is why the mechanism was restructured rather than retuned; see the write-up for the full argument.
 
 ## Backtest on real events
 
-The numbers above are synthetic scenarios. There is now also a **historical path** that reconstructs the per-slot offline balances from real mainnet data and runs the same three parameter sets over them. The flagship run is the 2025-12-04 post-Fusaka correlated outage — 22.7% of the validator set offline for 4.5 hours, below the one-third saturation point and therefore in the band where the factor discriminates rather than pinning.
+The numbers above are synthetic scenarios. There is now also a **historical path** that reconstructs the per-slot offline balances from real mainnet data and runs the same three parameter sets over every notable correlated outage of the Merge era. What a validator caught in each incident paid, as payback time — days of normal staking income needed to earn the loss back, per 32 ETH, each event under its own era's rules and measured EL income:
 
-Per 32 ETH of stake, over the 42 postmortem epochs:
+| Event | peak offline | payback today | as drafted (4096 / 4) | revised (765 / 256 / 2¹⁷) |
+| --- | --- | --- | --- | --- |
+| May 11+12 2023 finality incidents | 69% — cap binds | 46 min | 53 min (1.16x) | **1.9 days (79x)** |
+| Besu halt, 2024-01-06 | 12.4% | 1.3 h | 1.3 h (1.04x) | **4.3 h (3.5x)** |
+| Nethermind bug, 2024-01-21 | 18.8% | 1.5 h | 1.5 h (1.01x) | **21 h (14x)** |
+| Prysm post-Fusaka, 2025-12-04 | 29.8% | 2.5 h | 2.5 h (1.01x) | **4.7 days (45x)** |
 
-| Line | days-to-recoup | vs today |
-| --- | --- | --- |
-| Status quo | 2.5 h | 1.00x |
-| EIP-7716 as drafted (4096 / 4) | 2.5 h | **1.01x** |
-| EIP-7716 revised (381 / 128 / 2¹⁷) | **2.40 d** | **22.7x** |
+Two readings of that table. **The drafted mechanism is a measured no-op on all four events** — including May 2023, the incident that motivated it — which is the fixed-budget invariant on chain data rather than in algebra. **The revision scales with severity**: a moderate incident draws a moderate multiplier, the largest sub-finality event draws ~45x, and the cap binds only in the one event that crossed a third of stake. On the December 2025 event the peak factor is ~224x against the cap of 256 (peak per-slot offline stake 29.8%), the exposure is roughly 240 ETH per 1% of total stake run (~2,400 ETH for a 10%-of-stake operator), and extending to the full recovery tail raises the status-quo cost by 70% but the revised cost by ~3%: the charge lands on the correlated onset, not on how long a solo staker takes to come back.
 
-Peak factor 112x against a cap of 128 — the cap never binds, because peak per-slot offline stake was 29.8%. Extending to the full recovery tail raises the status-quo cost by 70% and the revised cost by 3%: the charge lands on the correlated onset, not on how long a solo staker takes to come back.
-
-Method, the flag derivation, spec validation, the attributed cut and every caveat are in [`FINDINGS.md`](FINDINGS.md); the tables are in [`results/RESULTS.md`](results/RESULTS.md).
-
-The same harness now covers **four events spanning 2023–2025** — the May 11+12 2023 finality incidents (the only cap-binding event: participation floors 40% / 30.7%, scored 39.8x vs a drafted-mechanism 1.16x), the 2024-01-06 Besu halt (2.2x), the 2024-01-21 Nethermind bug (7.5x) and post-Fusaka (22.7x) — see [`BACKTEST.md`](BACKTEST.md). Two follow-up analyses build on it:
+Method, the flag derivation, spec validation, the attributed cut and every caveat are in [`FINDINGS.md`](FINDINGS.md); per-event tables in `results*/RESULTS.md` and the cross-event summary in [`BACKTEST.md`](BACKTEST.md). Those detailed tables were computed at the initial 381/128 calibration — exactly half of the adopted curve below the cap; the adopted-constants replays are in [`results_sweep/severity_sweep.json`](results_sweep/severity_sweep.json) and [`SEVERITY.md`](SEVERITY.md). Two follow-up analyses build on the same harness:
 
 * [`WINDOW_TUNING.md`](WINDOW_TUNING.md) — the smoothing window and skew, swept over all four events with per-validator recovery hours measured from chain data. Headline: window length barely moves cliff events (it prices *sustained* outages), and a 24–36 h straggler pays 1.40x the 6–8 h crowd under this mechanism versus 4.1x under today's rules.
-* [`REDISTRIBUTION.md`](REDISTRIBUTION.md) — why the extra penalties burn rather than redistribute: the original draft's issuance neutrality *is* the fixed-budget no-op, redistribution funds discouragement attacks (December 2025 would have created a 2,290 ETH pot for online validators), and the worst-case burn is 0.32% of one year's issuance, once.
+* [`REDISTRIBUTION.md`](REDISTRIBUTION.md) — why the extra penalties burn rather than redistribute: the original draft's issuance neutrality *is* the fixed-budget no-op, redistribution funds discouragement attacks (December 2025 would have created a ~4,600 ETH pot for online validators), and the worst-case burn is ~0.6% of one year's issuance, once.
+* [`SEVERITY.md`](SEVERITY.md) — how the constants were chosen: caps 128–512 and slope-decoupled variants scored on the real events, bystander exposure, and worst-case bounds.
 
 ![What the missing stake was doing](figures/h1_flag_breakdown.png)
 
