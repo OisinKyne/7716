@@ -1,0 +1,30 @@
+
+second incident BASELINE  (epochs 200359-200550, 192 epochs)
+                                                  share of stake  share of validators
+attested fully (timely source AND target)                99.237%              99.236%
+timely source, missed target   [NOT scaled]               0.209%               0.209%
+missed source, timely target   [NOT scaled]               0.059%               0.059%
+missed BOTH  ->  OFFLINE       [SCALED]                   0.495%               0.496%
+    of which no attestation included at all               0.452%               0.453%
+    of which attested late AND wrong target               0.042%               0.042%
+
+EVENT WINDOW  (epochs 200551-200760, 210 epochs)
+                                                  share of stake  share of validators
+attested fully (timely source AND target)                95.217%              95.216%
+timely source, missed target   [NOT scaled]               0.285%               0.285%
+missed source, timely target   [NOT scaled]               0.501%               0.501%
+missed BOTH  ->  OFFLINE       [SCALED]                   3.996%               3.997%
+    of which no attestation included at all               3.982%               3.983%
+    of which attested late AND wrong target               0.013%               0.013%
+
+--- per-epoch extremes, event window ---
+ min_target_participation  at_epoch  max_offline_share  peak_epoch  missed_slot_rate
+                 0.306709    200752           0.693136      200752          0.045833
+
+cross-check: Prysm postmortem: finality lost epochs 200551-200554 (participation floor ~40%) and 200750-200759 (floor 30.7%); patches Prysm v4.0.3-hotfix / Teku 23.5.0 on May 13 ~03:45Z.
+
+--- plateau detail (epochs where offline share > 30%) ---
+ epochs  mean_offline_pct  mean_src_only_pct  mean_tgt_only_pct  pct_of_non_full_attesters_that_were_dark
+     12             53.88              0.111              5.347                                     89.97
+
+(no gossipatt_*.parquet present -- skipping the p2p control)

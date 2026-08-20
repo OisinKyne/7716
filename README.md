@@ -44,18 +44,44 @@ Per 32 eth validator, July 2026 parameters (~40.7M eth staked, eth ≈ $1,840, ~
 
 Under the *originally drafted* mechanism every one of these events costs within a few percent of $6.17, at any cap — the update rule has a fixed excess-penalty budget, `Σ(factor−1) = PAF·Δmiss/32`, independent of `MAX_PENALTY_FACTOR` and outage duration. That invariant is why the mechanism was restructured rather than retuned; see the write-up for the full argument.
 
+## Backtest on real events
+
+The numbers above are synthetic scenarios. There is now also a **historical path** that reconstructs the per-slot offline balances from real mainnet data and runs the same three parameter sets over them. The flagship run is the 2025-12-04 post-Fusaka correlated outage — 22.7% of the validator set offline for 4.5 hours, below the one-third saturation point and therefore in the band where the factor discriminates rather than pinning.
+
+Per 32 ETH of stake, over the 42 postmortem epochs:
+
+| Line | days-to-recoup | vs today |
+| --- | --- | --- |
+| Status quo | 2.5 h | 1.00x |
+| EIP-7716 as drafted (4096 / 4) | 2.5 h | **1.01x** |
+| EIP-7716 revised (381 / 128 / 2¹⁷) | **2.40 d** | **22.7x** |
+
+Peak factor 112x against a cap of 128 — the cap never binds, because peak per-slot offline stake was 29.8%. Extending to the full recovery tail raises the status-quo cost by 70% and the revised cost by 3%: the charge lands on the correlated onset, not on how long a solo staker takes to come back.
+
+Method, the flag derivation, spec validation, the attributed cut and every caveat are in [`FINDINGS.md`](FINDINGS.md); the tables are in [`results/RESULTS.md`](results/RESULTS.md).
+
+The same harness now covers **four events spanning 2023–2025** — the May 11+12 2023 finality incidents (the only cap-binding event: participation floors 40% / 30.7%, scored 39.8x vs a drafted-mechanism 1.16x), the 2024-01-06 Besu halt (2.2x), the 2024-01-21 Nethermind bug (7.5x) and post-Fusaka (22.7x) — see [`BACKTEST.md`](BACKTEST.md). Two follow-up analyses build on it:
+
+* [`WINDOW_TUNING.md`](WINDOW_TUNING.md) — the smoothing window and skew, swept over all four events with per-validator recovery hours measured from chain data. Headline: window length barely moves cliff events (it prices *sustained* outages), and a 24–36 h straggler pays 1.40x the 6–8 h crowd under this mechanism versus 4.1x under today's rules.
+* [`REDISTRIBUTION.md`](REDISTRIBUTION.md) — why the extra penalties burn rather than redistribute: the original draft's issuance neutrality *is* the fixed-budget no-op, redistribution funds discouragement attacks (December 2025 would have created a 2,290 ETH pot for online validators), and the worst-case burn is 0.32% of one year's issuance, once.
+
+![What the missing stake was doing](figures/h1_flag_breakdown.png)
+
+*The gating question first: EIP-7716 only scales validators missing **both** the timely source and timely target flags. 97.8% of the non-attesting stake at the plateau missed both — dark, not slow — so the factor applies.*
+
 ![What a validator caught in a 10% correlated outage loses: the drafted mechanism overlaps the status quo line, the revision is meaningful but flattens once the cohort recovers](figures/f4_cost_vs_rectification.png)
 
 *The as-drafted mechanism (green) is indistinguishable from having no mechanism at all (grey, underneath it); the revision (blue) charges an amount operators will notice, front-loaded so that slow-recovering solo stakers aren't the ones who pay.*
 
 ## Files
 
+### Synthetic model
+
 | File | What it is |
 | --- | --- |
 | `eip7716_model.py` | Network anchors (stake, rewards, penalties) and an exact-integer simulation of the originally drafted `NET_EXCESS_PENALTIES` mechanism |
-| `gen_figures.py` | The **final** revised mechanism (slope 381 / cap 128 / 2¹⁷ smoothing) plus the inactivity-leak model, and generation of all seven figures in `figures/` |
+| `gen_figures.py` | The **final** revised mechanism (slope 381 / cap 128 / 2¹⁷ smoothing) plus the inactivity-leak model, and generation of figures `f1`–`f7` in `figures/` |
 | `ethresearch-comment.md` | Source of the analysis write-up (image paths are local; swap for Discourse uploads) |
-| `figures/` | The seven figures referenced by the write-up |
 | `eip7716_variants.py` | *Design evolution:* cap/PAF sweeps proving the fixed-budget invariant, and an early slow-EMA-ratio design |
 | `eip7716_frontloaded.py` | *Design evolution:* retuned-counter vs fast-EMA designs under heterogeneous recovery times, with the inactivity-leak model |
 | `eip7716_aggressive.py` | *Design evolution:* EMA-relative excess-ratio calibration (superseded by the baseline-invariant absolute slope) |
@@ -63,12 +89,56 @@ Under the *originally drafted* mechanism every one of these events costs within 
 
 The three *design evolution* scripts implement superseded parameterisations and are kept as the record of how the final design was reached (and why the alternatives — duration-punishing leaks, EMA-relative slopes, counter retuning, non-linear factors — were rejected). `gen_figures.py` is the source of truth for the proposed mechanism's behaviour.
 
+### Historical backtest
+
+| File | What it is |
+| --- | --- |
+| `xatu_ingest.py` | Historical ingestion path: Xatu public Parquet → participation flags → per-slot offline balances, the quantity `get_slot_offline_balance` returns |
+| `eip7716_historical.py` | Runs status quo / drafted / revised over the real per-slot series; per-validator costs, days-to-recoup, network accounting, the attributed cut |
+| `spec_check.py` | Executes the consensus-specs Python **directly out of the spec markdown** and diffs it against the pipeline |
+| `attribution.py` | Behavioural split of the offline cohort from the p2p gossip record, with the sentry-recall control |
+| `el_bonus.py` | Measures the execution-layer share of normal income from MEV relay payloads |
+| `step0_report.py` | The gating question: the four-way flag breakdown and the dark-vs-slow controls |
+| `sensitivity.py` | How the headline moves under each judgement call |
+| `results_table.py` | Formats `results/summary.json` into `results/RESULTS.md` |
+| `gen_figures_historical.py` | Figures `h1`–`h5`, same palette and styling as `gen_figures.py` |
+| `run_all.sh` | The whole thing, from an empty `data/` |
+| `events.py` | The event registry: epoch bounds, seed windows, era economics — one entry per catalogued outage |
+| `FINDINGS.md` | Method, validation, results, caveats |
+| `BACKTEST.md` | The cross-event summary: all four outages under both mechanisms |
+
+### Window & skew sweep
+
+| File | What it is |
+| --- | --- |
+| `window_sweep.py` | Replays each event under 12 update-rule variants (symmetric half-lives 2¹⁴–2¹⁸, asymmetric rise/fall skews); per-validator cost by measured recovery hour, quiet-window noise, synthetic sustained-outage and re-arm probes |
+| `gen_sweep_report.py` | Formats `results_sweep/sweep_*.json` into [`results_sweep/SWEEP_REPORT.md`](results_sweep/SWEEP_REPORT.md) |
+| `gen_sweep_figures.py` | Figures `w1`–`w3` |
+| `smoke_test_sweep.py` | Schema-identical synthetic fixture that validates the sweep end-to-end without the ingest |
+| `WINDOW_TUNING.md` | The analysis: what the window controls, the straggler question, why skew was rejected |
+| `REDISTRIBUTION.md` | Burn vs redistribute, with the discouragement-attack and issuance-magnitude arguments |
+
 ## Reproduce
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python gen_figures.py     # regenerates figures/*.png
+.venv/bin/python gen_figures.py     # regenerates figures/f*.png
 .venv/bin/python eip7716_model.py   # original-mechanism scenario tables
 ```
 
 Network parameters are embedded in `eip7716_model.Network` (defaults are the July 2026 snapshot); change them there to rerun the calibration under different assumptions of stake, price, or baseline offline rate.
+
+### Reproduce the historical backtest
+
+```bash
+./run_all.sh          # ~5 GB of Parquet, ~10 min on a warm connection
+```
+
+Downloads about 5 GB of [ethPandaOps Xatu](https://ethpandaops.io/data/xatu/) public Parquet into `data/` (no key, no account, no rate limit), derives the participation flags, and writes `results/` and `figures/h*.png`. Re-runs against cached partitions take about three minutes. `data/` and the per-validator intermediates are gitignored; `results/*.{md,json,csv}` and the figures are tracked.
+
+To run it on a different event, change the epoch range:
+
+```bash
+.venv/bin/python xatu_ingest.py --epoch-lo <lo> --epoch-hi <hi>
+.venv/bin/python eip7716_historical.py --event-lo <lo> --event-hi <hi> --seed-lo <lo> --seed-hi <hi>
+```

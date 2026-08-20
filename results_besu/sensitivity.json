@@ -1,0 +1,66 @@
+{
+  "seed_window": {
+    "baseline, 192 epochs (headline)": {
+      "epochs": [
+        254278,
+        254469
+      ],
+      "seed_eth": 3301.6015625,
+      "baseline_share": 0.003651128059300357,
+      "peak_factor": 46,
+      "days_to_recoup_revised": 0.13571129017784878
+    },
+    "baseline, last 48 epochs": {
+      "epochs": [
+        254422,
+        254469
+      ],
+      "seed_eth": 3079.389322917,
+      "baseline_share": 0.0034076896588281294,
+      "peak_factor": 46,
+      "days_to_recoup_revised": 0.1370709287719411
+    },
+    "full pull range before the event": {
+      "epochs": [
+        254278,
+        254469
+      ],
+      "seed_eth": 3301.6015625,
+      "baseline_share": 0.003651128059300357,
+      "peak_factor": 46,
+      "days_to_recoup_revised": 0.13571129017784878
+    }
+  },
+  "el_bonus": {
+    "0.275 \u2014 measured, 21 days around the event": {
+      "status_quo": 0.05300676965087241,
+      "original": 0.05517012807571656,
+      "revised": 0.11463612511493579,
+      "n": 134502
+    },
+    "0.263 \u2014 lower bound (locally-built blocks earn nothing)": {
+      "status_quo": 0.053502983596779796,
+      "original": 0.0556865939371335,
+      "revised": 0.1157092718914981,
+      "n": 134502
+    },
+    "0.288 \u2014 upper bound (locally-built earn like relayed)": {
+      "status_quo": 0.05245241956953943,
+      "original": 0.05459315337630812,
+      "revised": 0.11343724909023702,
+      "n": 134502
+    },
+    "0.21 \u2014 the repo's July-2026 default": {
+      "status_quo": 0.055854240747820104,
+      "original": 0.05813381264176746,
+      "revised": 0.12079426406739102,
+      "n": 134502
+    }
+  },
+  "uncollected": {},
+  "drafted_scope": {
+    "source_plus_target_days": 0.06531282571637753,
+    "target_only_days": 0.06441644809605561,
+    "status_quo_days": 0.06275174680117207
+  }
+}

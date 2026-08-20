@@ -1,0 +1,90 @@
+{
+  "seed_window": {
+    "pre-Fusaka, 192 epochs (headline)": {
+      "epochs": [
+        411200,
+        411391
+      ],
+      "seed_eth": 3518.727050781,
+      "baseline_share": 0.0031610141402507288,
+      "peak_factor": 112,
+      "days_to_recoup_revised": 2.397895570264903
+    },
+    "pre-Fusaka, last 48 epochs": {
+      "epochs": [
+        411344,
+        411391
+      ],
+      "seed_eth": 3125.740234375,
+      "baseline_share": 0.0028084563008172734,
+      "peak_factor": 112,
+      "days_to_recoup_revised": 2.4024870118056354
+    },
+    "post-Fusaka activation, immediately pre-event": {
+      "epochs": [
+        411392,
+        411438
+      ],
+      "seed_eth": 29201.756648936,
+      "baseline_share": 0.026228921412211784,
+      "peak_factor": 103,
+      "days_to_recoup_revised": 2.119369977887883
+    },
+    "full pull range before the event": {
+      "epochs": [
+        411200,
+        411438
+      ],
+      "seed_eth": 8569.364670502,
+      "baseline_share": 0.007697963261439329,
+      "peak_factor": 110,
+      "days_to_recoup_revised": 2.3431538408398684
+    }
+  },
+  "el_bonus": {
+    "0.077 \u2014 measured, 21 days around the event": {
+      "status_quo": 0.1054645937634788,
+      "original": 0.1060712877531561,
+      "revised": 2.397895570264903,
+      "n": 328835
+    },
+    "0.074 \u2014 lower bound (locally-built blocks earn nothing)": {
+      "status_quo": 0.10578982133864342,
+      "original": 0.10639838622743565,
+      "revised": 2.405290106516227,
+      "n": 328835
+    },
+    "0.081 \u2014 upper bound (locally-built earn like relayed)": {
+      "status_quo": 0.10509641477282156,
+      "original": 0.10570099078173596,
+      "revised": 2.3895244692227697,
+      "n": 328835
+    },
+    "0.21 \u2014 the repo's July-2026 default": {
+      "status_quo": 0.09387220453162536,
+      "original": 0.0944122123224373,
+      "revised": 2.134325230723389,
+      "n": 328835
+    }
+  },
+  "uncollected": {
+    "headline": {
+      "status_quo": 0.1054645937634788,
+      "original": 0.1060712877531561,
+      "revised": 2.397895570264903,
+      "n": 328835
+    },
+    "excluded": {
+      "status_quo": 0.11742278282940377,
+      "original": 0.11805693645054928,
+      "revised": 2.670143404417159,
+      "n": 293447
+    },
+    "n_excluded": 35388
+  },
+  "drafted_scope": {
+    "source_plus_target_days": 0.1060712877531561,
+    "target_only_days": 0.10585894485676905,
+    "status_quo_days": 0.1054645937634788
+  }
+}

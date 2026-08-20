@@ -1,0 +1,155 @@
+{
+  "event_epochs": [
+    257907,
+    257943
+  ],
+  "seed_window": [
+    257715,
+    257906
+  ],
+  "seed_ema_gwei": 2709930338542,
+  "seed_ema_eth": 2709.930338542,
+  "seed_offline_share": 0.00299415928274553,
+  "seed_nep": 3,
+  "total_active_balance_eth": 28984888.0,
+  "base_reward_per_increment_gwei": 375,
+  "cl_apr": 0.03081796875,
+  "peak_offline_share": 0.18801803015479343,
+  "mean_offline_share_event": 0.05007810274029563,
+  "factor_revised": {
+    "max": 71,
+    "mean": 18.33108108108108,
+    "slots_at_cap": 0
+  },
+  "factor_original": {
+    "max": 4,
+    "mean": 0.9991554054054054,
+    "slots_at_cap": 6,
+    "slots_at_zero": 42
+  },
+  "event": {
+    "status_quo": {
+      "mean_loss_gwei_per_32eth": 211353.61343481828,
+      "median_loss_gwei_per_32eth": 132349.59868272266,
+      "p95_loss_gwei_per_32eth": 624453.5185771172,
+      "mean_days_to_recoup": 0.06237379767886035,
+      "median_days_to_recoup": 0.03905846205776086,
+      "p95_days_to_recoup": 0.18428612028246047,
+      "network_total_eth": 28.066065841178645,
+      "network_penalty_eth": 12.585799453125
+    },
+    "original": {
+      "mean_loss_gwei_per_32eth": 213804.8078815632,
+      "median_loss_gwei_per_32eth": 138701.95742731608,
+      "p95_loss_gwei_per_32eth": 616953.5185771172,
+      "mean_days_to_recoup": 0.0630971839697693,
+      "median_days_to_recoup": 0.040933143699960484,
+      "p95_days_to_recoup": 0.1820727515352272,
+      "network_total_eth": 28.391639903678644,
+      "network_penalty_eth": 12.911373515625
+    },
+    "revised": {
+      "mean_loss_gwei_per_32eth": 1575610.818512252,
+      "median_loss_gwei_per_32eth": 1320701.957427316,
+      "p95_loss_gwei_per_32eth": 3773703.5185771175,
+      "mean_days_to_recoup": 0.4649876991330241,
+      "median_days_to_recoup": 0.3897600582639269,
+      "p95_days_to_recoup": 1.1136796572457188,
+      "network_total_eth": 209.23795954430366,
+      "network_penalty_eth": 193.75769315625
+    },
+    "n_validators_affected": 132823,
+    "mean_offline_epochs": 12.637080927249047,
+    "forgone_reward_eth": 15.480266388053645,
+    "forgone_reward_ideal_eth": 16.99082926171875,
+    "mean_factor_revised": 23.144958430022132,
+    "mean_factor_original": 1.0258624541628065
+  },
+  "event_plus_tail": {
+    "status_quo": {
+      "mean_loss_gwei_per_32eth": 300107.0435015829,
+      "median_loss_gwei_per_32eth": 34705.481009211566,
+      "p95_loss_gwei_per_32eth": 1468984.8914092202,
+      "mean_days_to_recoup": 0.08856634012146465,
+      "median_days_to_recoup": 0.010242136936464976,
+      "p95_days_to_recoup": 0.43352069984040736,
+      "network_total_eth": 72.51759990034296,
+      "network_penalty_eth": 31.7455059375
+    },
+    "original": {
+      "mean_loss_gwei_per_32eth": 306126.769325043,
+      "median_loss_gwei_per_32eth": 42123.09984631727,
+      "p95_loss_gwei_per_32eth": 1450173.1155536906,
+      "mean_days_to_recoup": 0.09034285652207262,
+      "median_days_to_recoup": 0.012431193698190136,
+      "p95_days_to_recoup": 0.42796904693926247,
+      "network_total_eth": 73.97313404096796,
+      "network_penalty_eth": 33.201040078125
+    },
+    "revised": {
+      "mean_loss_gwei_per_32eth": 1212386.821430992,
+      "median_loss_gwei_per_32eth": 197142.00836742925,
+      "p95_loss_gwei_per_32eth": 5126407.238247853,
+      "mean_days_to_recoup": 0.3577945466817153,
+      "median_days_to_recoup": 0.058179728011636206,
+      "p95_days_to_recoup": 1.5128839422304423,
+      "network_total_eth": 293.05846300581163,
+      "network_penalty_eth": 252.28636904296874
+    },
+    "n_validators_affected": 241815,
+    "mean_offline_epochs": 17.516597398837956,
+    "forgone_reward_eth": 40.77209396284296,
+    "forgone_reward_ideal_eth": 42.856433015625,
+    "mean_factor_revised": 11.683257093859543,
+    "mean_factor_original": 1.0458211199081349
+  },
+  "network_accounting": {
+    "epochs": [
+      257907,
+      257943
+    ],
+    "baseline_participation": {
+      "src": 0.996280876679981,
+      "tgt": 0.9958002846143454,
+      "head": 0.9774203417326159
+    },
+    "attestation_rewards_paid_eth": 292.04702351883265,
+    "attestation_rewards_at_baseline_eth": 333.33676377622476,
+    "forgone_attestation_rewards_eth": 41.28974025739211,
+    "attestation_penalties_paid_eth": 13.1634940546875,
+    "attestation_penalties_at_baseline_eth": 1.0132123713290255,
+    "excess_attestation_penalties_eth": 12.150281683358475,
+    "cl_issuance_budget_eth": 402.11745300000007,
+    "slots": 1184,
+    "blocks_produced": 1097,
+    "missed_slots": 87,
+    "missed_slot_rate": 0.07347972972972973,
+    "baseline_missed_slot_rate": 0.00439453125,
+    "excess_missed_slots": 81.796875,
+    "forgone_proposer_cl_eth": 3.472545506583549,
+    "forgone_proposer_el_eth": 2.5111640625000002,
+    "forgone_sync_eth": 0.6292899726562501,
+    "total_network_cost_eth": 60.05302148249039
+  },
+  "hypothetical_dv_archetype": {
+    "_label": "HYPOTHETICAL CONSTRUCTION -- not an observation",
+    "mean_event_factor_revised": 18.33108108108108,
+    "cases": {
+      "survival_0.00": {
+        "epochs_offline": 37.0,
+        "days_to_recoup_status_quo": 0.19245241257193452,
+        "days_to_recoup_revised": 1.11501217352811
+      },
+      "survival_0.50": {
+        "epochs_offline": 18.5,
+        "days_to_recoup_status_quo": 0.09622620628596726,
+        "days_to_recoup_revised": 0.557506086764055
+      },
+      "survival_1.00": {
+        "epochs_offline": 0.0,
+        "days_to_recoup_status_quo": 0.0,
+        "days_to_recoup_revised": 0.0
+      }
+    }
+  }
+}

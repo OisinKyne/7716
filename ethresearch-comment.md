@@ -1,4 +1,4 @@
-*(Source of [this comment](https://ethresear.ch/t/supporting-decentralized-staking-through-more-anti-correlation-incentives/19116/18). Images use the Discourse `upload://` shortcodes from the published post, so pasting this file over the live post preserves them. Current vs live delta: identifier renames — `smoothed_offline_balance` / `OFFLINE_BALANCE_SMOOTHING_FACTOR` — matching consensus-specs review feedback.)*
+*(Source of [this comment](https://ethresear.ch/t/supporting-decentralized-staking-through-more-anti-correlation-incentives/19116/18). Images use the Discourse `upload://` shortcodes from the published post, so pasting this file over the live post preserves them; the two new figures in the August update use GitHub URLs that Discourse will rehost on paste. Current vs live delta: the appended "Update, August 2026" section.)*
 
 Reviving this thread two years on, with a model, a calibration, and a proposed restructuring of the mechanism it produced.
 
@@ -121,3 +121,30 @@ My original gut-feel calibration was that a double-digit% liveness failure shoul
 3) Historical replay: I'd like to run the revised factor over past incidents (the May 2023 non-finality events in particular). The offline-signature scope needs per-flag participation history which public datasets don't consistently carry — pointers to a good source very welcome.
 
 To conclude: the case for anti-correlation penalties was made two years ago and hasn't been rebutted; what was missing is a mechanism that charges an amount anyone would notice, without punishing the slow-recovery long tail or misfiring on relay outages and chain splits. I think the offline-pattern + EMA-reference design above addresses both concerns, and the constants are now a policy choice the community can argue about with the model in hand. The revised EIP text is up as a [PR](https://github.com/ethereum/EIPs/pull/11962), the simulation and figure code I have published [here](https://github.com/OisinKyne/7716), as well as a [PR](https://github.com/ethereum/consensus-specs/pull/5452) to the consensus-specs. Feedback is sought and appreciated on all of it, particularly from operators whose incident-response costs this is explicitly trying to shape, and core devs considering it for inclusion in Hegotá. Thanks for reading.
+
+---
+
+## Update, August 2026: backtested on five years of real outages
+
+Open question 3 above is answered. The per-flag participation history I was missing is derivable from the ethPandaOps Xatu public Parquet (no key, mainnet from genesis) — [ksale001 contributed a backtest harness](https://github.com/OisinKyne/7716/pull/1) that reconstructs `get_slot_offline_balance` from raw attestation records, validates it by executing the consensus-specs Python straight out of the spec markdown, and reproduces each incident's published postmortem figures before scoring anything. We've now run status quo, the 2024 draft, and this revision over four real events, each under its own era's rules (the EIP-7045 target-flag change matters) and its own measured EL income:
+
+| Event | peak offline | as drafted | revised | days-to-recoup (revised) |
+| --- | --- | --- | --- | --- |
+| May 11+12 2023 finality incidents | 69%, cap binds | **1.16x** | **39.8x** | 0.97 d |
+| Besu halt, Jan 2024 | 12.4% | 1.04x | **2.2x** | 2.8 h |
+| Nethermind bug, Jan 2024 | 18.8% | 1.01x | **7.5x** | 11.2 h |
+| Prysm post-Fusaka, Dec 2025 | 29.8% | 1.01x | **22.7x** | 2.40 d |
+
+Two things worth pulling out. The drafted mechanism is a measured no-op on all four — including May 2023, its own motivating incident — which is the fixed-budget invariant on chain data rather than in algebra. And the revision is proportionate: 2.2x for a moderate incident, the cap binding only in the one event that crossed a third of stake.
+
+Because the ingest records each validator's offline epochs individually, we could also measure something no postmortem documents: **cost as a function of each operator's own recovery time**. This addresses the long-tail concern directly. On the December 2025 event, a validator that took 24–36 hours to come back paid 1.40x what the 6–8 hour crowd paid; under *today's* rules that same spread costs 4.1x. Besu's resync-stragglers — down 48 hours — paid 1.4x today's cost. The charge lands on being correlated at onset, not on how long the fix takes.
+
+![cost by personal recovery hour, four real events](https://raw.githubusercontent.com/OisinKyne/7716/main/figures/w1_straggler_curves.png)
+
+We also swept the smoothing half-life (2¹⁴–2¹⁸) and asymmetric fast-rise variants over all four events, since the window is the parameter I was least sure of. Result: window length barely moves any real event (they're all cliffs, hours-scale against a days-scale window) — what it actually prices is *sustained* outages, where 2¹⁷ charges a 10%-of-stake, 7-day cohort ~92 days of income. Fast-rise skews that decay the factor with time-since-onset were rejected with data: they buy a marginal fairness improvement (1.40x → ~1.2x) while letting a 20% operator sit out three days at mean factor 2.7. Straggler forgiveness and sustained-outage forgiveness turn out to be the same quantity for any global factor; the write-ups are [WINDOW_TUNING.md](https://github.com/OisinKyne/7716/blob/main/WINDOW_TUNING.md) and the full sweep tables in the repo.
+
+![window length: real events flat, sustained outages priced](https://raw.githubusercontent.com/OisinKyne/7716/main/figures/w3_window_effect.png)
+
+On the revenue-neutrality departure flagged above, there's now a quantified answer to "isn't this an issuance debate by proxy" ([REDISTRIBUTION.md](https://github.com/OisinKyne/7716/blob/main/REDISTRIBUTION.md)): the worst event since the Merge would have burned ~2,290 ETH extra — 0.24% of one year's issuance, once — and the steady-state burn is measurably zero. Redistributing instead would recreate either the fixed-budget no-op or a discouragement-attack bounty (that December event would have handed online validators a 2,290 ETH pot, ~690 ETH of it to any 30% staker who *caused* a competitor's outage). Every penalty in the current spec burns; this one should too.
+
+Finally, on forward-compatibility: the [decoupled consensus / fast finality effort](https://consensus.ethereum.foundation/blog/upgrading-finality-edition-1) will split today's attestation into separate fork-choice and finality votes. This mechanism scales only the finality-vote penalty (timely target) and gates on the source+target pair, deliberately leaving head/fork-choice votes untouched — so the signal it prices lives entirely in the component that remains a full-validator-set FFG-style vote under decoupling, while the part that becomes a small-committee message is the part we never scaled. Nothing in the mechanism depends on epoch structure beyond the smoothing constant, which is a tunable. I've checked this framing with Ben Edgington, who is leading the decoupled consensus effort: the two proposals compose.
