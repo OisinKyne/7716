@@ -115,6 +115,15 @@ plot as a flat line here:
 
 ![relative multiple](figures/w4_relative_multiple.png)
 
+The most intuitive cut of all: index everyone to their own ~2.5-hour peer and
+put hours on a linear axis. Today's rules are exactly proportional to time
+down (the dashed line, the same for every event); the revised charge is
+front-loaded, so staying down ~10x longer costs 2–6x more, not 10x — and the
+Besu curve is the least flat of the three precisely because its *cohort* was
+down for 13 hours, and the factor only collapses when the cohort recovers.
+
+![cost growth vs time down](figures/w5_cost_growth.png)
+
 Cross-event: Nethermind's onset cohort runs 18x → 4x over the same range, and
 Besu's 36–48 h resync victims paid about twice today's cost for two extra
 days of downtime.

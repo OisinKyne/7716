@@ -145,9 +145,9 @@ Because the ingest records each validator's offline epochs individually, we coul
 
 ![cost by personal recovery hour, real events](https://raw.githubusercontent.com/OisinKyne/7716/main/figures/w1_straggler_curves.png)
 
-The same data as a single chart, since "does this hammer slow responders" is the most common concern raised: the penalty multiple over today's rules, per recovery hour. A duration-proportional design would be a flat line; front-loading makes it fall on every event.
+The same data as a single chart, since "does this hammer slow responders" is the most common concern raised. Everyone is indexed to their own ~2.5-hour peer: under today's rules cost is strictly proportional to time down (the dashed line, identical for every event), while under the revision the charge lands at onset and the tail bends flat — on the December event, staying down 10x longer cost 2.1x more, not 10x.
 
-![penalty multiple vs today falls with recovery time](https://raw.githubusercontent.com/OisinKyne/7716/main/figures/w4_relative_multiple.png)
+![cost growth vs time down: today proportional, revised front-loaded](https://raw.githubusercontent.com/OisinKyne/7716/main/figures/w5_cost_growth.png)
 
 We also swept the smoothing half-life (2¹⁴–2¹⁸) and asymmetric fast-rise variants over all four events, since the window is the parameter I was least sure of. Result: window length barely moves any real event (they're all cliffs, hours-scale against a days-scale window) — what it actually prices is *sustained* outages, where 2¹⁷ charges a 10%-of-stake, 7-day cohort ~158 days of income at the adopted constants. Fast-rise skews that decay the factor with time-since-onset were rejected with data: they buy a marginal fairness improvement (1.40x → ~1.2x) while letting a 20% operator sit out three days at a mean factor in the low single digits. Straggler forgiveness and sustained-outage forgiveness turn out to be the same quantity for any global factor; the write-ups are [WINDOW_TUNING.md](https://github.com/OisinKyne/7716/blob/main/WINDOW_TUNING.md) and the full sweep tables in the repo.
 

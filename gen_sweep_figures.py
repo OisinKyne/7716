@@ -4,12 +4,15 @@
 import json
 import os
 
+import numpy as np
 import matplotlib
 matplotlib.use("Agg")
+import numpy as np
 import matplotlib.pyplot as plt
 
 BLUE, GREEN, GRAY = "#2a78d6", "#008300", "#52514e"
 ORANGE = "#c4590a"
+AXIS_GRAY = "#c3c2b7"
 SURFACE = "#fcfcfb"
 plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE,
@@ -192,13 +195,67 @@ def w4_relative_multiple(data, out_dir):
     plt.close(fig)
 
 
+def w5_cost_growth(data, out_dir):
+    """Cost as a multiple of a ~2.5h responder's cost, vs hours actually down
+    (linear axes, onset cohort). Today's rules are exactly proportional to
+    time down — a straight line, identical for every event. The revised
+    mechanism bends flat: staying down ~10x longer costs 2-3x more, not 10x.
+    """
+    fig, ax = plt.subplots(figsize=(7.6, 5.2))
+    colors = {"besu": GRAY, "nethermind": "#8a5fbf", "prysm": BLUE}
+    ref_bucket = "2-4h"
+    max_h = 0.0
+    for key in ("besu", "nethermind", "prysm"):
+        if key not in data:
+            continue
+        sc = data[key]["straggler_curve_onset"]["sym_2^17"]
+        ref = sc.get(ref_bucket)
+        if not ref:
+            continue
+        ref_h = ref["mean_offline_epochs"] * 32 * 12 / 3600
+        xs, ys = [], []
+        for b in BUCKETS:
+            v = sc.get(b)
+            if v and v["n"] >= 200:
+                xs.append(v["mean_offline_epochs"] * 32 * 12 / 3600)
+                ys.append(v["mean_dtr"] / ref["mean_dtr"])
+        ax.plot(xs, ys, "o-", color=colors[key], lw=2, ms=5,
+                label=f'{data[key]["title"]} (revised)')
+        max_h = max(max_h, max(xs))
+        offsets = {"besu": (8, 2), "nethermind": (8, 10), "prysm": (8, -22)}
+        ax.annotate(f"{xs[-1]/ref_h:.0f}x longer down,\n{ys[-1]:.1f}x the cost",
+                    (xs[-1], ys[-1]), textcoords="offset points",
+                    xytext=offsets[key], color=colors[key], fontsize=9)
+        # today's rules: cost strictly proportional to time down, same for
+        # every event — one reference line through (ref_h, 1)
+        if key == "prysm":
+            hh = np.linspace(0, max_h * 1.02, 50)
+            ax.plot(hh, hh / ref_h, ls="--", color="#b3352b", lw=1.8,
+                    label="today's rules (any event): cost ∝ time down")
+            ax.annotate(f"{max_h/ref_h:.0f}x longer down,\n{max_h/ref_h:.0f}x the cost",
+                        (max_h, max_h / ref_h), textcoords="offset points",
+                        xytext=(-8, 4), color="#b3352b", fontsize=9, ha="right")
+    ax.axhline(1, color=AXIS_GRAY, lw=1)
+    ax.set_xlabel("hours actually offline (validators down since event onset)")
+    ax.set_ylabel(f"cost, as a multiple of a ~2.5 h responder's cost")
+    ax.set_title("Today, cost is proportional to how long you're down;\n"
+                 "revised, the charge is front-loaded and the tail is nearly flat")
+    ax.legend(frameon=False, fontsize=9, loc="upper left")
+    ax.grid(alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "w5_cost_growth.png"),
+                dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(out_dir="results_sweep"):
     data = load(out_dir)
     w1_straggler(data, out_dir)
     w2_frontier(data, out_dir)
     w3_window_effect(data, out_dir)
     w4_relative_multiple(data, out_dir)
-    print("wrote w1/w2/w3/w4 figures to", out_dir)
+    w5_cost_growth(data, out_dir)
+    print("wrote w1/w2/w3/w4/w5 figures to", out_dir)
 
 
 if __name__ == "__main__":
