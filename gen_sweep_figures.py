@@ -147,12 +147,58 @@ def w3_window_effect(data, out_dir):
     plt.close(fig)
 
 
+def w4_relative_multiple(data, out_dir):
+    """The answer to 'does this hammer slow responders': the penalty multiple
+    over today's rules, for validators down since event onset, by recovery
+    hour. A duration-proportional design would be a flat line; front-loading
+    makes it fall.
+    """
+    fig, ax = plt.subplots(figsize=(7.4, 5.0))
+    colors = {"besu": GRAY, "nethermind": "#8a5fbf", "prysm": BLUE}
+    for key in ("besu", "nethermind", "prysm"):
+        if key not in data:
+            continue
+        sc = data[key]["straggler_curve_onset"]
+        xs, ys = [], []
+        for i, b in enumerate(BUCKETS):
+            v0 = sc["status_quo"].get(b)
+            v1 = sc["sym_2^17"].get(b)
+            if v0 and v1 and v0["n"] >= 200 and v0["mean_dtr"] > 0:
+                xs.append(i)
+                ys.append(v1["mean_dtr"] / v0["mean_dtr"])
+        ax.plot(xs, ys, "o-", color=colors[key], lw=2, ms=5,
+                label=data[key]["title"])
+        ax.annotate(f"{ys[0]:.0f}x", (xs[0], ys[0]), textcoords="offset points",
+                    xytext=(-4, 8), color=colors[key], fontsize=10, ha="right")
+        ax.annotate(f"{ys[-1]:.0f}x", (xs[-1], ys[-1]), textcoords="offset points",
+                    xytext=(6, 4), color=colors[key], fontsize=10)
+    ax.axhline(1, color=GRAY, lw=1.2, ls="--")
+    ax.text(0.1, 1.15, "1x = today's rules", color=GRAY, fontsize=9)
+    ax.set_yscale("log")
+    ax.set_yticks([1, 2, 4, 8, 16, 32, 64])
+    ax.set_yticklabels(["1x", "2x", "4x", "8x", "16x", "32x", "64x"])
+    ax.set_xticks(range(len(BUCKETS)))
+    ax.set_xticklabels(BUCKETS, rotation=45, ha="right", fontsize=9)
+    ax.set_xlabel("hour the outage ended, from onset "
+                  "(validators down since event onset)")
+    ax.set_ylabel("penalty multiple vs today's rules")
+    ax.set_title("The multiple falls as recovery stretches:\n"
+                 "fast responders bear the deterrent, stragglers converge toward today")
+    ax.legend(frameon=False, fontsize=9, loc="upper right")
+    ax.grid(alpha=0.25, which="both")
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "w4_relative_multiple.png"),
+                dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(out_dir="results_sweep"):
     data = load(out_dir)
     w1_straggler(data, out_dir)
     w2_frontier(data, out_dir)
     w3_window_effect(data, out_dir)
-    print("wrote w1/w2/w3 figures to", out_dir)
+    w4_relative_multiple(data, out_dir)
+    print("wrote w1/w2/w3/w4 figures to", out_dir)
 
 
 if __name__ == "__main__":

@@ -109,9 +109,15 @@ longer costs far less than four times more relative to a fast responder
 | 24–36 h | 6,911 | 1.46 d | 13.15 d | **9x** |
 
 A validator recovering at 24–36 h paid 1.5x one recovering at 6–8 h; today's
-rules charge 4.7x for the same spread. Cross-event confirmation: Nethermind's
-onset cohort runs 18x → 4x over the same range, and Besu's 36–48 h resync
-victims paid about twice today's cost for two extra days of downtime.
+rules charge 4.7x for the same spread. The same falling-multiple shape holds
+on every event with a recovery tail — a duration-proportional design would
+plot as a flat line here:
+
+![relative multiple](figures/w4_relative_multiple.png)
+
+Cross-event: Nethermind's onset cohort runs 18x → 4x over the same range, and
+Besu's 36–48 h resync victims paid about twice today's cost for two extra
+days of downtime.
 
 May 2023 is the stress test for innocents — finality stalled, so healthy
 validators' attestations couldn't land and were recorded offline. A bystander
