@@ -32,8 +32,16 @@ def load(out_dir="results_sweep"):
 
 
 def w1_straggler(data, out_dir):
-    """Cost vs personal recovery hour, per event, contiguous outages."""
-    events = [k for k in EVENT_ORDER if k in data]
+    """Cost vs recovery hour for the down-from-onset cohort, per event.
+
+    Events whose onset cohort recovered inside a single bucket (the May 2023
+    cliff incidents) carry no straggler information and are skipped.
+    """
+    def populated(key):
+        sc = data[key]["straggler_curve_onset"]["status_quo"]
+        return sum(1 for b in BUCKETS if sc.get(b, {}).get("n", 0) >= 200) >= 3
+
+    events = [k for k in EVENT_ORDER if k in data and populated(k)]
     fig, axes = plt.subplots(1, len(events), figsize=(4.2 * len(events), 4.4),
                              sharey=False)
     if len(events) == 1:
@@ -42,7 +50,7 @@ def w1_straggler(data, out_dir):
               ("sym_2^17", BLUE, "revised (2$^{17}$, as drafted)"),
               ("rise_2^12_fall_2^17", ORANGE, "fast-rise skew (2$^{12}$ up)")]
     for ax, key in zip(axes, events):
-        sc = data[key]["straggler_curve_contiguous"]
+        sc = data[key]["straggler_curve_onset"]
         for name, color, label in series:
             xs, ys = [], []
             for i, b in enumerate(BUCKETS):
@@ -54,12 +62,13 @@ def w1_straggler(data, out_dir):
         ax.set_xticks(range(len(BUCKETS)))
         ax.set_xticklabels(BUCKETS, rotation=45, ha="right", fontsize=8)
         ax.set_title(data[key]["title"], fontsize=9)
-        ax.set_xlabel("personal recovery time from onset")
+        ax.set_xlabel("hour the outage ended, from onset")
         ax.grid(axis="y", alpha=0.25)
     axes[0].set_ylabel("mean days-to-recoup per 32 ETH")
     axes[0].legend(frameon=False, fontsize=8)
-    fig.suptitle("What a validator paid, by how long it took to come back "
-                 "(contiguous outages, real events)", y=1.02)
+    fig.suptitle("What a validator down from the original onset paid, by when it recovered\n"
+                 "(second-wave outages that began after the peak are excluded for clarity)",
+                 y=1.05)
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, "w1_straggler_curves.png"),
                 dpi=160, bbox_inches="tight")

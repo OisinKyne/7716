@@ -5,11 +5,11 @@ smoothing window, and is there a skew of the update rule that keeps the
 penalty meaningful for everyone caught in a correlated outage without
 hammering operators who take 24 hours to apply an 8-hour patch?
 
-> **Calibration note.** This analysis was run at the initial 381/128
-> calibration; the EIP has since adopted 765/256 ([`SEVERITY.md`](SEVERITY.md)).
-> Every ratio, curve shape, and conclusion here is calibration-independent;
-> absolute days-to-recoup double below the cap (e.g. the sustained 10%·7d
-> deterrent at 2^17 is ~158 days of income at the adopted constants).
+> **Calibration note.** Sweep results, figures, and this document are at the
+> adopted 765/256 constants ([`SEVERITY.md`](SEVERITY.md)); the detailed
+> backtest record in `results*/` remains at the initial 381/128 (see
+> [`BACKTEST.md`](BACKTEST.md)) — exactly half of the adopted curve below the
+> cap.
 
 Method: the historical backtest harness ([BACKTEST.md](BACKTEST.md)), extended
 with [`window_sweep.py`](window_sweep.py), which replays every catalogued real
@@ -39,14 +39,16 @@ economics:
 
 | Event | peak offline | cohort 50% / 90% recovered | patch available | revised | vs today |
 |---|---|---|---|---|---|
-| May 11+12 2023 finality incidents | 69% (cap-bound, 314 slots at 128x) | self-healed in ~26 / ~64 min | +31.5 h (after recovery) | 0.97 d | **39.8x** |
-| Besu halt, 2024-01-06 | 12.4% | 13 h event + 48 h resync tail | +13 h | 2.8 h | **2.2x** |
-| Nethermind bug, 2024-01-21 | 18.8% | fast (restart-only fix) | +3.9 h | 11.2 h | **7.5x** |
-| Prysm post-Fusaka, 2025-12-04 | 29.8% | 50% at 2.8 h, 90% at 6.7 h | +1.8 h (runtime flag) | 2.40 d | **22.7x** |
+| May 11+12 2023 finality incidents | 69% (cap-bound) | self-healed in ~26 / ~64 min | +31.5 h (after recovery) | 1.92 d | **79x** |
+| Besu halt, 2024-01-06 | 12.4% | 13 h event + 48 h resync tail | +13 h | 4.3 h | **3.5x** |
+| Nethermind bug, 2024-01-21 | 18.8% | fast (restart-only fix) | +3.9 h | 21 h | **14x** |
+| Prysm post-Fusaka, 2025-12-04 | 29.8% | 50% at 2.8 h, 90% at 6.7 h | +1.8 h (runtime flag) | 4.73 d | **45x** |
 
 The drafted (`NET_EXCESS_PENALTIES`) mechanism scores 1.16x on May 2023 — a
 no-op on its own motivating incident, alongside the 1.04x / 1.01x / 1.01x
-already measured on the other three.
+already measured on the other three. (Days above are event-window figures;
+the sweep tables below use the event-plus-tail cohort, a slightly different
+basis.)
 
 Recovery in the wild is patch-gated in only half the catalog: May 2023
 self-healed before any patch existed, and December 2025 recovered on a runtime
@@ -59,22 +61,25 @@ operator" spread is real — Besu's resync-required fix produced a 48-hour tail.
 
 **Window length is nearly irrelevant to real events.** Every recorded outage
 is a cliff: hours-scale, short against even the shortest candidate window.
-Sweeping 2^14 → 2^18 moves the December 2025 event only 12.8x → 13.9x and May
-2023 not at all; the straggler curves are indistinguishable. During cap-bound
+Sweeping 2^14 → 2^18 moves the December 2025 event only 24.9x → 27.1x and May
+2023 barely at all (56.1x → 56.6x); the straggler curves are
+indistinguishable. During cap-bound
 storms the cap sets severity and the window does nothing.
 
 **The window prices exactly one thing: sustained outages.** A synthetic
-10%-of-stake cohort holding down for 7 days costs 39 d (2^14) → 92 d (2^17) →
-100 d (2^18) of income to recoup. That is the deterrent against a large
+10%-of-stake cohort holding down for 7 days costs 71 d (2^14) → 176 d (2^17) →
+192 d (2^18) of income to recoup on the December-2025 baseline (≈158 d for
+2^17 at the EIP's July-2026 anchors). That is the deterrent against a large
 operator or region staying dark.
 
 **Re-arm is a non-issue at these scales.** A repeat of December 2025 three
 days later meets 0.99 of the original onset factor at 2^17; in the real May
 2023 double event, incident B hit the cap under every variant tested.
 
-**Quiet-window behaviour is benign.** At the 2025 noise floor ~2% of slots
-tick factor 2 (one doubled 26/64-weight penalty — cents); p99 = 2 across all
-symmetric variants.
+**Quiet-window behaviour is benign.** At the 2025 noise floor ~10% of slots
+tick a small factor (p99 = 3 — two or three extra 26/64-weight penalties on a
+routine miss, cents); the occasional larger excursion in "quiet" windows is a
+real micro-event being priced, not noise.
 
 ## The straggler question, answered from chain data
 
@@ -82,22 +87,40 @@ symmetric variants.
 
 Tail-friendliness comes from the mechanism's structure, not the window: the
 factor tracks *current excess* offline balance, so when the cohort recovers
-the factor collapses and whoever is still down pays little. Measured on
-December 2025 (contiguous outages only): a validator recovering at 24–36 h
-paid **1.40x** one recovering at 6–8 h. Today's rules charge **4.1x** for the
-same spread. Same-duration outages timed after cohort recovery cost ~40% of
-peak-timed ones. Cross-event confirmation: Nethermind's 24–36 h stragglers
-paid 2.2x its onset cohort (7.2x under current rules); Besu's 48-hour resync
-victims paid 1.4x today's cost for the same downtime.
+the factor collapses and whoever is still down pays little. The figure and
+table below hold the population fixed — **validators that went down at the
+original onset and stayed down until they recovered**. Validators whose
+outages began later (second waves, restart flapping) are excluded for
+simplicity: their downtime landed after the factor had collapsed and is
+priced near today's rates, so including them makes the curve dip in the
+middle buckets for composition reasons rather than mechanism reasons.
+
+On this fixed cohort the cost is monotone in recovery time, and the
+interesting column is the *multiple over today's cost*, which **falls** as
+recovery stretches — the penalty is front-loaded, so being down four times
+longer costs far less than four times more relative to a fast responder
+(December 2025, per 32 ETH):
+
+| recovered by | n | today | revised (765/256) | multiple vs today |
+|---|---|---|---|---|
+| 0–2 h | 51,680 | 0.03 d | 1.57 d | **57x** |
+| 6–8 h | 12,902 | 0.31 d | 8.67 d | 28x |
+| 12–18 h | 2,622 | 0.74 d | 10.78 d | 15x |
+| 24–36 h | 6,911 | 1.46 d | 13.15 d | **9x** |
+
+A validator recovering at 24–36 h paid 1.5x one recovering at 6–8 h; today's
+rules charge 4.7x for the same spread. Cross-event confirmation: Nethermind's
+onset cohort runs 18x → 4x over the same range, and Besu's 36–48 h resync
+victims paid about twice today's cost for two extra days of downtime.
 
 May 2023 is the stress test for innocents — finality stalled, so healthy
 validators' attestations couldn't land and were recorded offline. A bystander
-swept in for 1–2 epochs paid 0.22 days of income (0.0012 ETH, ~$2.25 at the
-era price); 90% of the missing stake at the plateau was dark by every chain
-measure, and the both-flags gate exempted a further 5.3% of live-but-slow
-stake. Under EIP-7045's full-epoch target window and Electra's larger
-inclusion capacity the same storm would register fewer false-offline
-validators, so 0.22 d is an upper bound on today's equivalent.
+swept in for 1–2 epochs paid 0.44 days of income (~$4.50 at the era price) at
+the adopted constants; 90% of the missing stake at the plateau was dark by
+every chain measure, and the both-flags gate exempted a further 5.3% of
+live-but-slow stake. Under EIP-7045's full-epoch target window and Electra's
+larger inclusion capacity the same storm would register fewer false-offline
+validators, so that is an upper bound on today's equivalent.
 
 ## Skew variants: what they buy, what they surrender
 
@@ -105,8 +128,9 @@ validators, so 0.22 d is an upper bound on today's equivalent.
 
 A fast-rise / slow-fall split (the reference chases the spike upward with an
 hours-scale half-life, releases at 12.6 d) is the only lever that materially
-changes within-event fairness, and the improvement is modest — 1.40x → ~1.2x
-straggler premium — because cohort recovery already does the work. The cost is
+changes within-event fairness, and the improvement is modest — 1.5x → ~1.2x
+straggler premium on the onset cohort — because cohort recovery already does
+the work. The cost is
 disqualifying:
 
 - **Sustained deterrence collapses.** Under a 1.2-hour rise (`2^9`), a
@@ -128,9 +152,9 @@ disqualifying:
 
 **Keep `OFFLINE_BALANCE_SMOOTHING_FACTOR = 2^17`, symmetric.** Anything in
 2^16–2^18 is defensible for real events (they are indistinguishable there);
-2^17 keeps the sustained-outage deterrent meaningful (~92 days of income for a
-10%-of-stake week), re-arms fully within days of cliff events, and is exactly
-16 sync-committee periods. Going shorter buys nothing on any recorded event
+2^17 keeps the sustained-outage deterrent meaningful (~176 days of income for
+a 10%-of-stake week), re-arms fully within days of cliff events, and is
+exactly 16 sync-committee periods. Going shorter buys nothing on any recorded event
 and halves the sustained deterrent; asymmetric skew improves the measured
 straggler premium marginally while cutting sustained deterrence 4–10x and
 adding a second constant to the spec.

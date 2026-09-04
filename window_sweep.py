@@ -31,11 +31,6 @@ and, synthetically on each event's own baseline:
   sustained       cost of a 10%-of-stake cohort staying down 7 days
   re-arm          onset factor a repeat event would meet +3/+7/+14 days out
 
-The committed results_sweep/sweep_*.json were generated at the initial
-381/128 calibration (imported from eip7716_historical at the time); the
-ratios and conclusions are calibration-independent, absolute days double
-at the adopted 765/256 constants.
-
 Usage: .venv/bin/python window_sweep.py --event prysm [--out results_sweep]
 """
 
@@ -316,6 +311,14 @@ def run(event_key: str, out_dir: str):
 
     straggler = bucket_curve(fresh)
     straggler_contiguous = bucket_curve(fresh[fresh.density >= 0.8])
+    # the cleanest cut for the fairness question: validators that went down
+    # AT the original onset and stayed down until recovery. Second-wave
+    # outages (which start after the cohort peak and are priced at the
+    # already-collapsed factor) are excluded; on this fixed population the
+    # cost is monotone in recovery time by construction.
+    onset_mask = (fresh.density >= 0.8) & (
+        fresh.first_offline_epoch <= ev.event_lo + 8)
+    straggler_onset = bucket_curve(fresh[onset_mask])
 
     # ---------------- summary per variant
     results = {}
@@ -413,7 +416,9 @@ def run(event_key: str, out_dir: str):
         "variants": results,
         "straggler_curve": straggler,
         "straggler_curve_contiguous": straggler_contiguous,
+        "straggler_curve_onset": straggler_onset,
         "n_contiguous": int((fresh.density >= 0.8).sum()),
+        "n_onset": int(onset_mask.sum()),
     }
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, f"sweep_{ev.key}.json")

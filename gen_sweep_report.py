@@ -72,13 +72,21 @@ def main(out_dir="results_sweep"):
             )
 
         lines += [
-            "\n### Cost by personal recovery hour (contiguous outages only)\n",
-            "Mean days-to-recoup per 32 ETH, bucketed by the hour (from onset) "
-            "at which the validator's outage ended.\n",
-            "| recovered by | n | " + " | ".join(f"`{k}`" for k in CURVE_KEYS) + " |",
-            "|---|---|" + "---|" * len(CURVE_KEYS),
+            "\n### Cost by recovery hour — validators down from the original onset\n",
+            "Mean days-to-recoup per 32 ETH, bucketed by the hour (from onset) at "
+            "which the validator's outage ended. Only contiguous outages that began "
+            "at event onset are included; validators that went offline later (second "
+            "waves, restart flapping) are excluded here for clarity — their downtime "
+            "landed after the factor collapsed and is priced near today's rates. The "
+            "final column is the ratio of the scaled cost to today's cost for the "
+            "same bucket: it *falls* with recovery time because the penalty is "
+            "front-loaded, so being down 4x longer costs far less than 4x more "
+            "relative to a fast responder.\n",
+            "| recovered by | n | " + " | ".join(f"`{k}`" for k in CURVE_KEYS)
+            + " | `sym_2^17` vs today |",
+            "|---|---|" + "---|" * (len(CURVE_KEYS) + 1),
         ]
-        sc = d["straggler_curve_contiguous"]
+        sc = d["straggler_curve_onset"]
         for b in BUCKETS:
             v0 = sc["status_quo"].get(b)
             if not v0:
@@ -87,6 +95,9 @@ def main(out_dir="results_sweep"):
             for k in CURVE_KEYS:
                 v = sc[k].get(b)
                 row += f" {fmt_d(v['mean_dtr'])} |" if v else " -- |"
+            vr = sc["sym_2^17"].get(b)
+            row += (f" **{vr['mean_dtr']/v0['mean_dtr']:.0f}x** |"
+                    if vr and v0["mean_dtr"] > 0 else " -- |")
             lines.append(row)
         lines.append("")
 
