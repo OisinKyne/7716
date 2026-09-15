@@ -12,7 +12,7 @@ factor            = min(1 + PENALTY_SLOPE * max(0, offline − smoothed_offline_
                           // committee_balance,
                         MAX_PENALTY_FACTOR)    # cap 256, slope = 3·(cap−1) = 765
 smoothed_offline_balance += (offline − smoothed_offline_balance)
-                          // OFFLINE_BALANCE_SMOOTHING_FACTOR    # 2**17, ~12.6d half-life
+                          // OFFLINE_BALANCE_SMOOTHING_FACTOR    # 2**16, ~6.3d half-life
 ```
 
 The factor scales only the timely-**target** penalty of validators that produced no timely attestation at all. Uncorrelated failures pay exactly today's penalties; the factor is never below 1; the cap binds at exactly one third of stake — where the inactivity leak takes over — by the slope identity, at any baseline participation rate.
@@ -38,11 +38,11 @@ Per 32 eth validator, July 2026 parameters (~40.7M eth staked, eth ≈ $1,840, ~
 | Event | Today | Revised | Payback |
 | --- | --- | --- | --- |
 | uncorrelated failure | $6.17 | $6.17 (1.0x) | 1.2 d |
-| 10% correlated | $6.17 | $133 (21.6x) | ~3.7 wk |
-| 20% correlated | $6.17 | $260 (42.2x) | ~7 wk |
-| 40% down 3 days (finality lost) | $819 | $2,124 (2.6x) | ~14 mo ≈ 3.6% of principal |
+| 10% correlated | $6.17 | $130 (21x) | ~3.6 wk |
+| 20% correlated | $6.17 | $253 (41x) | ~7 wk |
+| 40% down 3 days (finality lost) | $819 | $2,083 (2.5x) | ~13.5 mo ≈ 3.5% of principal |
 
-In the 40% row the leak dominates the *today* column and remains unchanged: of the $2,124, $801 is the pre-existing inactivity leak and $1,324 is this proposal — the outsized total above one third comes mostly from mechanisms that already exist. At the operator scale the 10%/24h row is ~900 ETH per 1% of total stake run, on the order of 9,000 ETH for a 10%-of-stake operator whose fleet fails together for a day. Constants were chosen from a severity sweep over the real events below — caps 128–512 and slope-decoupled variants — documented in [`SEVERITY.md`](SEVERITY.md).
+In the 40% row the leak dominates the *today* column and remains unchanged: of the $2,083, $801 is the pre-existing inactivity leak and $1,282 is this proposal — the outsized total above one third comes mostly from mechanisms that already exist. At the operator scale the 10%/24h row is ~900 ETH per 1% of total stake run, on the order of 9,000 ETH for a 10%-of-stake operator whose fleet fails together for a day. Constants were chosen from a severity sweep over the real events below — caps 128–512 and slope-decoupled variants — documented in [`SEVERITY.md`](SEVERITY.md).
 
 Under the *originally drafted* mechanism every one of these events costs within a few percent of $6.17, at any cap — the update rule has a fixed excess-penalty budget, `Σ(factor−1) = PAF·Δmiss/32`, independent of `MAX_PENALTY_FACTOR` and outage duration. That invariant is why the mechanism was restructured rather than retuned; see the write-up for the full argument.
 
@@ -50,10 +50,10 @@ Under the *originally drafted* mechanism every one of these events costs within 
 
 The numbers above are synthetic scenarios. There is now also a **historical path** that reconstructs the per-slot offline balances from real mainnet data and runs the same three parameter sets over every notable correlated outage of the Merge era. What a validator caught in each incident paid, as payback time — days of normal staking income needed to earn the loss back, per 32 ETH, each event under its own era's rules and measured EL income:
 
-| Event | peak offline | payback today | as drafted (4096 / 4) | revised (765 / 256 / 2¹⁷) |
+| Event | peak offline | payback today | as drafted (4096 / 4) | revised (765 / 256 / 2¹⁶) |
 | --- | --- | --- | --- | --- |
 | May 11+12 2023 finality incidents | 69% — cap binds | 46 min | 53 min (1.16x) | **1.9 days (79x)** |
-| Besu halt, 2024-01-06 | 12.4% | 1.3 h | 1.3 h (1.04x) | **4.3 h (3.5x)** |
+| Besu halt, 2024-01-06 | 12.4% | 1.3 h | 1.3 h (1.04x) | **4.3 h (3.4x)** |
 | Nethermind bug, 2024-01-21 | 18.8% | 1.5 h | 1.5 h (1.01x) | **21 h (14x)** |
 | Prysm post-Fusaka, 2025-12-04 | 29.8% | 2.5 h | 2.5 h (1.01x) | **4.7 days (45x)** |
 

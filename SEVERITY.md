@@ -1,5 +1,11 @@
 # How severe? Choosing MAX_PENALTY_FACTOR from the real events
 
+> **Note (September 2026):** the smoothing window was subsequently shortened
+> from 2^17 to 2^16 to halve the extended-outage worst case — see the
+> revision section in [`WINDOW_TUNING.md`](WINDOW_TUNING.md). The cap
+> analysis below was run at the 2^17 window; event-level results differ by
+> under 1% between the two windows, so the cap conclusions are unaffected.
+
 The four replayed incidents priced at the initial calibration (381/128) in
 days-to-recoup: ~1 day for the May 2023 finality incidents, hours for the two
 January 2024 client bugs, ~2.4 days for post-Fusaka. Meaningful, but arguably

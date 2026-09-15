@@ -50,7 +50,7 @@ def w1_straggler(data, out_dir):
     if len(events) == 1:
         axes = [axes]
     series = [("status_quo", GRAY, "status quo"),
-              ("sym_2^17", BLUE, "revised (2$^{17}$, as drafted)"),
+              ("sym_2^16", BLUE, "revised (2$^{16}$, as adopted)"),
               ("rise_2^12_fall_2^17", ORANGE, "fast-rise skew (2$^{12}$ up)")]
     for ax, key in zip(axes, events):
         sc = data[key]["straggler_curve_onset"]
@@ -165,7 +165,7 @@ def w4_relative_multiple(data, out_dir):
         xs, ys = [], []
         for i, b in enumerate(BUCKETS):
             v0 = sc["status_quo"].get(b)
-            v1 = sc["sym_2^17"].get(b)
+            v1 = sc["sym_2^16"].get(b)
             if v0 and v1 and v0["n"] >= 200 and v0["mean_dtr"] > 0:
                 xs.append(i)
                 ys.append(v1["mean_dtr"] / v0["mean_dtr"])
@@ -208,7 +208,7 @@ def w5_cost_growth(data, out_dir):
     for key in ("besu", "nethermind", "prysm"):
         if key not in data:
             continue
-        sc = data[key]["straggler_curve_onset"]["sym_2^17"]
+        sc = data[key]["straggler_curve_onset"]["sym_2^16"]
         ref = sc.get(ref_bucket)
         if not ref:
             continue

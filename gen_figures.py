@@ -25,7 +25,7 @@ FULL = net.full_reward_per_epoch_gwei()
 M0 = net.baseline_miss
 USD = net.eth_price_usd
 EP_H = EPOCHS_PER_DAY / 24
-CAP, HL_D = 256, 12.6
+CAP, HL_D = 256, 6.31
 SLOPE = 3 * (CAP - 1)   # 765: cap binds at exactly 1/3
 ALPHA = 1 - 0.5 ** (1 / (HL_D * EPOCHS_PER_DAY * 32))
 
@@ -136,7 +136,7 @@ def fig1():
     ax.annotate("renormalises to 1x within ~2 minutes\n(and gives a discount window at recovery)",
                 xy=(1.2, 1.06), xytext=(8, 2.6), color=GREEN, fontsize=9.5, ha="left",
                 arrowprops=dict(arrowstyle="-", color=GREEN, lw=1))
-    ax.annotate(f"opens at {min(1 + SLOPE * 0.10, CAP):.0f}x, proportional to the event size;\nthe EMA absorbs the anomaly over ~2 weeks",
+    ax.annotate(f"opens at {min(1 + SLOPE * 0.10, CAP):.0f}x, proportional to the event size;\nthe EMA absorbs the anomaly over ~1 week",
                 xy=(20, 36), xytext=(22, 4.7), color=BLUE, fontsize=9.5,
                 arrowprops=dict(arrowstyle="-", color=BLUE, lw=1))
     ax.annotate("collapses to 1x when\nthe cohort recovers", xy=(72.5, 5), xytext=(74, 11),

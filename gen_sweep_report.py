@@ -16,7 +16,7 @@ SHOW = ["status_quo", "sym_2^14", "sym_2^15", "sym_2^16", "sym_2^17", "sym_2^18"
         "rise_2^9_fall_2^17", "rise_2^11_fall_2^17", "rise_2^12_fall_2^17",
         "rise_2^13_fall_2^17", "rise_2^15_fall_2^17",
         "fall_2^15_rise_2^17", "fall_2^13_rise_2^17"]
-CURVE_KEYS = ["status_quo", "sym_2^14", "sym_2^17", "sym_2^18",
+CURVE_KEYS = ["status_quo", "sym_2^14", "sym_2^16", "sym_2^17",
               "rise_2^12_fall_2^17", "rise_2^13_fall_2^17"]
 BUCKETS = ["0-2h", "2-4h", "4-6h", "6-8h", "8-12h", "12-18h", "18-24h",
            "24-36h", "36-48h", "48-72h", "72h+"]
@@ -83,7 +83,7 @@ def main(out_dir="results_sweep"):
             "front-loaded, so being down 4x longer costs far less than 4x more "
             "relative to a fast responder.\n",
             "| recovered by | n | " + " | ".join(f"`{k}`" for k in CURVE_KEYS)
-            + " | `sym_2^17` vs today |",
+            + " | `sym_2^16` vs today |",
             "|---|---|" + "---|" * (len(CURVE_KEYS) + 1),
         ]
         sc = d["straggler_curve_onset"]
@@ -95,7 +95,7 @@ def main(out_dir="results_sweep"):
             for k in CURVE_KEYS:
                 v = sc[k].get(b)
                 row += f" {fmt_d(v['mean_dtr'])} |" if v else " -- |"
-            vr = sc["sym_2^17"].get(b)
+            vr = sc["sym_2^16"].get(b)
             row += (f" **{vr['mean_dtr']/v0['mean_dtr']:.0f}x** |"
                     if vr and v0["mean_dtr"] > 0 else " -- |")
             lines.append(row)

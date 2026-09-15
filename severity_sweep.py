@@ -38,7 +38,7 @@ VARIANTS = [
     ("B: 1143/128", 1143, 128),
     ("B: 1524/128", 1524, 128),
 ]
-SMOOTH = 2**17
+SMOOTH = 2**17  # window at the time of the cap decision; the adopted window is now 2**16 (see WINDOW_TUNING.md addendum) — event results differ by <1%
 
 
 def run_event(key):

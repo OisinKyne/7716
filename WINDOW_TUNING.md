@@ -11,6 +11,38 @@ hammering operators who take 24 hours to apply an 8-hour patch?
 > [`BACKTEST.md`](BACKTEST.md)) — exactly half of the adopted curve below the
 > cap.
 
+## Revision (September 2026): window shortened to 2^16
+
+This document originally concluded "keep 2^17." That conclusion was scoped to
+the recorded events — all cliffs, for which the window is nearly irrelevant —
+and to sustained-outage *deterrence*. A follow-up analysis of extended
+sub-finality outages (weeks-long, below ⅓, no leak) surfaced the flip side:
+the window is also the **hard bound on the worst tail**. The excess integral
+has a closed form — `slope · m · (26/64) · window` base rewards ≈ a lifetime
+cost of `0.4·m` of principal at 2^17 — so a validator joining a ⅓ outage that
+never resolves was bounded at ~5.2 years of rewards. **2^16 was adopted** to
+halve that:
+
+| window | half-life | lifetime bound | ⅓ event, worst ever | 10%×7d deterrent kept | Fusaka replay |
+|---|---|---|---|---|---|
+| 2^15 | 3.2 d | 0.10·m | 1.3 reward-years | 61% | 25.9x |
+| **2^16 (adopted)** | **6.3 d** | **0.20·m** | **2.6 reward-years** | **84%** | 26.5x |
+| 2^17 (previous) | 12.6 d | 0.40·m | 5.2 reward-years | 100% | 26.9x |
+
+The exponential that makes the mechanism front-loaded also makes the window's
+marginal weeks the cheapest deterrence to give up: 2^17 → 2^16 halves the
+never-recover catastrophe while keeping ~84% of week-one sustained deterrence,
+~99% of every replayed event, and re-arm at 0.99. Anchors: 2^16 slots is
+exactly eight sync-committee periods and half the blob-sidecar retention
+window, and its ~6.3-day half-life matches the post-[EIP-8061](https://eips.ethereum.org/EIPS/eip-8061)
+weak subjectivity period (~7 days at current stake) — the mechanism forgets an
+outage on roughly the timescale a node can stay offline and still trustlessly
+rejoin. Exit-queue cross-check: post-8061 churn (~total/2^15 per epoch) drains
+a 30% cohort in ~44 days, so exiting and the bound converge — nobody is
+trapped paying multiples of what leaving costs. Sections below are kept as the
+original record; where they weigh 2^17 against smaller windows, this revision
+supersedes them.
+
 Method: the historical backtest harness ([BACKTEST.md](BACKTEST.md)), extended
 with [`window_sweep.py`](window_sweep.py), which replays every catalogued real
 event under 12 update-rule variants — symmetric half-lives 2^14–2^18 (1.6–25.2
@@ -170,6 +202,8 @@ disqualifying:
 2^17 keeps the sustained-outage deterrent meaningful (~176 days of income for
 a 10%-of-stake week), re-arms fully within days of cliff events, and is
 exactly 16 sync-committee periods. Going shorter buys nothing on any recorded event
-and halves the sustained deterrent; asymmetric skew improves the measured
+and halves the sustained deterrent (**superseded — see the September revision
+above: the halved sustained deterrent turned out to be exactly the right
+price for halving the extended-outage worst case**); asymmetric skew improves the measured
 straggler premium marginally while cutting sustained deterrence 4–10x and
 adding a second constant to the spec.

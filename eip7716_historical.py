@@ -9,7 +9,7 @@ three parameter sets over them:
   2. original EIP    -- PENALTY_ADJUSTMENT_FACTOR = 4096, MAX_PENALTY_FACTOR = 4,
                         the NET_EXCESS_PENALTIES counter
   3. revised EIP     -- PENALTY_SLOPE = 381, MAX_PENALTY_FACTOR = 128,
-                        OFFLINE_BALANCE_SMOOTHING_FACTOR = 2**17
+                        OFFLINE_BALANCE_SMOOTHING_FACTOR = 2**16
 
 All three use the *same* offline series (missing both timely source and timely
 target), so the comparison isolates the update rule rather than the trigger.
@@ -45,7 +45,7 @@ from eip7716_model import EPOCHS_PER_DAY, SLOTS_PER_EPOCH
 # differ by exactly 2x.
 MAX_PENALTY_FACTOR = 256
 PENALTY_SLOPE = 765  # 3 * (MAX_PENALTY_FACTOR - 1)
-OFFLINE_BALANCE_SMOOTHING_FACTOR = 2**17
+OFFLINE_BALANCE_SMOOTHING_FACTOR = 2**16
 
 PAF_ORIGINAL = 4096
 MAXF_ORIGINAL = 4
@@ -501,7 +501,7 @@ def dv_archetype(df, ctx: ChainContext, epoch_lo, epoch_hi, survival=(0.0, 0.5, 
 
 
 def main():
-    global PENALTY_SLOPE, MAX_PENALTY_FACTOR
+    global PENALTY_SLOPE, MAX_PENALTY_FACTOR, OFFLINE_BALANCE_SMOOTHING_FACTOR
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--derived-dir", default="data/derived")
     ap.add_argument("--out-dir", default="results")
@@ -515,9 +515,11 @@ def main():
     ap.add_argument("--eth-price", type=float, default=3050.0)
     ap.add_argument("--penalty-slope", type=int, default=PENALTY_SLOPE)
     ap.add_argument("--max-penalty-factor", type=int, default=MAX_PENALTY_FACTOR)
+    ap.add_argument("--smoothing-factor", type=int, default=OFFLINE_BALANCE_SMOOTHING_FACTOR)
     args = ap.parse_args()
 
     PENALTY_SLOPE = args.penalty_slope
+    OFFLINE_BALANCE_SMOOTHING_FACTOR = args.smoothing_factor
     MAX_PENALTY_FACTOR = args.max_penalty_factor
 
     os.makedirs(args.out_dir, exist_ok=True)
