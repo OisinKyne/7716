@@ -18,7 +18,9 @@ the recorded events — all cliffs, for which the window is nearly irrelevant �
 and to sustained-outage *deterrence*. A follow-up analysis of extended
 sub-finality outages (weeks-long, below ⅓, no leak) surfaced the flip side:
 the window is also the **hard bound on the worst tail**. The excess integral
-has a closed form — `slope · m · (26/64) · window` base rewards ≈ a lifetime
+has a closed form — `slope · m · (26/64) · window/32` base rewards (the
+reference's time constant is `window` *slots*, but each validator is charged
+its factor once per *epoch*, on its one assigned slot) ≈ a lifetime
 cost of `0.4·m` of principal at 2^17 — so a validator joining a ⅓ outage that
 never resolves was bounded at ~5.2 years of rewards. **2^16 was adopted** to
 halve that:
